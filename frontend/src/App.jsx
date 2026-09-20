@@ -1,85 +1,316 @@
 import React, { useState } from 'react';
 import { Sidebar } from './components/layout/Sidebar';
 import { Navbar } from './components/layout/Navbar';
+import { ToastNotification } from './components/common/ToastNotification';
+
+// Pages
 import { Dashboard } from './pages/Dashboard';
 import { Projects } from './pages/Projects';
-import { ModulePlaceholder } from './pages/ModulePlaceholder';
+import { AddProject } from './pages/AddProject';
+import { ProjectDetails } from './pages/ProjectDetails';
+import { Tasks } from './pages/Tasks';
+import { AddTask } from './pages/AddTask';
+import { Materials } from './pages/Materials';
+import { Suppliers } from './pages/Suppliers';
+import { SiteUpdates } from './pages/SiteUpdates';
+import { Documents } from './pages/Documents';
+import { Reports } from './pages/Reports';
+import { AIInsights } from './pages/AIInsights';
+import { Alerts } from './pages/Alerts';
+import { Settings } from './pages/Settings';
+
+// Mock Data
 import {
-  IconTasks,
-  IconMaterials,
-  IconReports,
-  IconInsights,
-} from './components/common/Icons';
+  initialProjects,
+  initialTasks,
+  initialMaterials,
+  initialSuppliers,
+  initialSiteUpdates,
+  initialDocuments,
+  initialAlerts,
+} from './mock/constructionData';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedProjectId, setSelectedProjectId] = useState('PRJ-101');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [toasts, setToasts] = useState([]);
 
-  const toggleMobileSidebar = () => {
-    setIsMobileSidebarOpen((prev) => !prev);
+  // Reactive Application Data Stores
+  const [projects, setProjects] = useState(initialProjects);
+  const [tasks, setTasks] = useState(initialTasks);
+  const [materials, setMaterials] = useState(initialMaterials);
+  const [suppliers, setSuppliers] = useState(initialSuppliers);
+  const [siteUpdates, setSiteUpdates] = useState(initialSiteUpdates);
+  const [documents, setDocuments] = useState(initialDocuments);
+  const [alerts, setAlerts] = useState(initialAlerts);
+
+  // Toast Helper
+  const addToast = (message, type = 'info') => {
+    const id = Date.now().toString();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3800);
   };
 
-  const closeMobileSidebar = () => {
-    setIsMobileSidebarOpen(false);
+  const removeToast = (id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   };
+
+  // State Mutators
+  const handleAddProject = (newProject) => {
+    setProjects((prev) => [newProject, ...prev]);
+    addToast(`Project "${newProject.name}" created successfully!`, 'success');
+  };
+
+  const handleAddTask = (newTask) => {
+    setTasks((prev) => [newTask, ...prev]);
+    addToast(`Task "${newTask.name}" assigned successfully!`, 'success');
+  };
+
+  const handleAddMaterial = (newMat) => {
+    setMaterials((prev) => [newMat, ...prev]);
+    addToast(`Material "${newMat.material}" logged into inventory.`, 'success');
+  };
+
+  const handleAddSupplier = (newSup) => {
+    setSuppliers((prev) => [newSup, ...prev]);
+    addToast(`Supplier "${newSup.name}" registered.`, 'success');
+  };
+
+  const handleAddSiteUpdate = (newUpdate) => {
+    setSiteUpdates((prev) => [newUpdate, ...prev]);
+    addToast(`Daily log for ${newUpdate.project} saved.`, 'success');
+  };
+
+  const handleUploadDocument = (newDoc) => {
+    setDocuments((prev) => [newDoc, ...prev]);
+    addToast(`Document "${newDoc.name}" uploaded to repository.`, 'success');
+  };
+
+  const handleDeleteDocument = (docId) => {
+    setDocuments((prev) => prev.filter((d) => d.id !== docId));
+    addToast('Document deleted from archive.', 'warning');
+  };
+
+  const handleExportReport = (format) => {
+    addToast(`Generating ${format} report... Download started.`, 'success');
+  };
+
+  const handleReorderMaterial = (mat) => {
+    addToast(`Emergency PO drafted for ${mat.material}. Sent to ${mat.supplier}.`, 'success');
+  };
+
+  const handleDownloadFeedback = (fileName) => {
+    addToast(`Downloading ${fileName}...`, 'info');
+  };
+
+  // Title mappings
+  const getHeaderMeta = () => {
+    const selectedPrj = projects.find((p) => p.id === selectedProjectId) || projects[0];
+
+    switch (activeTab) {
+      case 'dashboard':
+        return { title: 'Dashboard', subtitle: 'Alex Morgan • Portfolio Overview' };
+      case 'projects':
+        return { title: 'Projects', subtitle: `${projects.length} Total Projects` };
+      case 'add-project':
+        return { title: 'Add Project', subtitle: 'New Capital Asset' };
+      case 'project-details':
+        return { title: selectedPrj?.name || 'Project Details', subtitle: selectedPrj?.code || 'Details' };
+      case 'tasks':
+        return { title: 'Tasks', subtitle: `${tasks.length} Active Work Orders` };
+      case 'add-task':
+        return { title: 'Add Task', subtitle: 'Milestone Work Order' };
+      case 'materials':
+        return { title: 'Material Inventory', subtitle: `${materials.length} Tracked Stockpiles` };
+      case 'suppliers':
+        return { title: 'Suppliers', subtitle: `${suppliers.length} Approved Vendors` };
+      case 'site-updates':
+        return { title: 'Site Updates', subtitle: 'Daily Field Telemetry' };
+      case 'documents':
+        return { title: 'Documents', subtitle: `${documents.length} Files in Cloud Vault` };
+      case 'reports':
+        return { title: 'Reports & Analytics', subtitle: 'Operational Intelligence' };
+      case 'insights':
+        return { title: 'AI Project Insights', subtitle: 'Gemini Predictive Intelligence' };
+      case 'alerts':
+        return { title: 'Alerts & Notifications', subtitle: `${alerts.length} System Advisories` };
+      case 'settings':
+        return { title: 'Settings', subtitle: 'Account & Workspace Preferences' };
+      default:
+        return { title: 'BuildFlow AI', subtitle: 'Smart Construction Suite' };
+    }
+  };
+
+  const { title, subtitle } = getHeaderMeta();
+  const selectedProject = projects.find((p) => p.id === selectedProjectId) || projects[0];
 
   const renderActiveView = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard onNavigateProjects={() => setActiveTab('projects')} />;
+        return (
+          <Dashboard
+            projects={projects}
+            tasks={tasks}
+            materials={materials}
+            siteUpdates={siteUpdates}
+            onNavigate={setActiveTab}
+            onSelectProject={setSelectedProjectId}
+          />
+        );
       case 'projects':
-        return <Projects />;
+        return (
+          <Projects
+            projects={projects}
+            onNavigate={setActiveTab}
+            onSelectProject={setSelectedProjectId}
+          />
+        );
+      case 'add-project':
+        return (
+          <AddProject
+            onAddProject={handleAddProject}
+            onNavigate={setActiveTab}
+          />
+        );
+      case 'project-details':
+        return (
+          <ProjectDetails
+            project={selectedProject}
+            allProjects={projects}
+            tasks={tasks}
+            materials={materials}
+            siteUpdates={siteUpdates}
+            documents={documents}
+            onNavigate={setActiveTab}
+            onSelectProject={setSelectedProjectId}
+          />
+        );
       case 'tasks':
         return (
-          <ModulePlaceholder
-            title="Task & Progress Tracking"
-            description="Gantt chart timelines, milestone breakdowns, work orders, and field crew activity logs."
-            icon={<IconTasks size={28} />}
+          <Tasks
+            tasks={tasks}
+            projects={projects}
+            onNavigate={setActiveTab}
+          />
+        );
+      case 'add-task':
+        return (
+          <AddTask
+            projects={projects}
+            onAddTask={handleAddTask}
+            onNavigate={setActiveTab}
           />
         );
       case 'materials':
         return (
-          <ModulePlaceholder
-            title="Material & Inventory Tracking"
-            description="On-site stock levels, delivery schedules, vendor PO tracking, and automatic shortage warnings."
-            icon={<IconMaterials size={28} />}
+          <Materials
+            materials={materials}
+            projects={projects}
+            onAddMaterial={handleAddMaterial}
+            onReorder={handleReorderMaterial}
+          />
+        );
+      case 'suppliers':
+        return (
+          <Suppliers
+            suppliers={suppliers}
+            onAddSupplier={handleAddSupplier}
+          />
+        );
+      case 'site-updates':
+        return (
+          <SiteUpdates
+            siteUpdates={siteUpdates}
+            projects={projects}
+            onAddUpdate={handleAddSiteUpdate}
+          />
+        );
+      case 'documents':
+        return (
+          <Documents
+            documents={documents}
+            projects={projects}
+            onUploadDocument={handleUploadDocument}
+            onDeleteDocument={handleDeleteDocument}
+            onDownloadFeedback={handleDownloadFeedback}
           />
         );
       case 'reports':
         return (
-          <ModulePlaceholder
-            title="Project Reporting"
-            description="Automated daily progress reports, safety audit filings, contractor logs, and PDF export facilities."
-            icon={<IconReports size={28} />}
+          <Reports
+            projects={projects}
+            tasks={tasks}
+            materials={materials}
+            onExportReport={handleExportReport}
           />
         );
       case 'insights':
         return (
-          <ModulePlaceholder
-            title="AI-Powered Project Insights"
-            description="Gemini-assisted delay risk prediction, critical path anomaly detection, and automated resource reallocation suggestions."
-            icon={<IconInsights size={28} />}
+          <AIInsights
+            projects={projects}
+            selectedProjectId={selectedProjectId}
+            onSelectProject={setSelectedProjectId}
+            onTriggerAction={(msg) => addToast(msg, 'success')}
+          />
+        );
+      case 'alerts':
+        return (
+          <Alerts
+            alerts={alerts}
+            onNavigate={setActiveTab}
+            onSelectProject={setSelectedProjectId}
+          />
+        );
+      case 'settings':
+        return (
+          <Settings
+            onSaveFeedback={(msg) => addToast(msg, 'success')}
           />
         );
       default:
-        return <Dashboard />;
+        return (
+          <Dashboard
+            projects={projects}
+            tasks={tasks}
+            materials={materials}
+            siteUpdates={siteUpdates}
+            onNavigate={setActiveTab}
+            onSelectProject={setSelectedProjectId}
+          />
+        );
     }
   };
 
   return (
-    <div className="app-container">
-      {/* Sidebar Navigation */}
+    <div className="app-layout">
+      {/* Toast Notification Container */}
+      <ToastNotification toasts={toasts} onDismiss={removeToast} />
+
+      {/* Persistent Left Sidebar */}
       <Sidebar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         isOpen={isMobileSidebarOpen}
-        onCloseMobile={closeMobileSidebar}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        unreadAlertsCount={alerts.filter((a) => a.type === 'Critical' || a.type === 'Warning').length}
       />
 
       {/* Main Wrapper */}
       <div className="main-wrapper">
-        <Navbar onToggleMobileSidebar={toggleMobileSidebar} />
-        <main className="main-content">
+        <Navbar
+          pageTitle={title}
+          pageSubtitle={subtitle}
+          onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onNavigate={setActiveTab}
+          recentAlerts={alerts}
+        />
+        <main>
           {renderActiveView()}
         </main>
       </div>
