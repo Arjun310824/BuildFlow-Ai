@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Sidebar } from './components/layout/Sidebar';
 import { Navbar } from './components/layout/Navbar';
 import { Dashboard } from './pages/Dashboard';
+import { Projects } from './pages/Projects';
 import { ModulePlaceholder } from './pages/ModulePlaceholder';
 import {
-  IconProjects,
   IconTasks,
   IconMaterials,
   IconReports,
@@ -26,15 +26,9 @@ export default function App() {
   const renderActiveView = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onNavigateProjects={() => setActiveTab('projects')} />;
       case 'projects':
-        return (
-          <ModulePlaceholder
-            title="Projects Directory"
-            description="Comprehensive portfolio tracking, site blueprints, contractor assignments, and geospatial site coordinates."
-            icon={<IconProjects size={28} />}
-          />
-        );
+        return <Projects />;
       case 'tasks':
         return (
           <ModulePlaceholder

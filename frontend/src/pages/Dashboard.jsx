@@ -5,14 +5,13 @@ import { StatusBadge, PriorityBadge } from '../components/common/Badge';
 import { ProgressBar } from '../components/common/ProgressBar';
 import {
   IconBuilding,
-  IconTasks,
   IconAlertTriangle,
   IconMaterials,
   IconTrendingUp,
   IconClock,
 } from '../components/common/Icons';
 
-export const Dashboard = () => {
+export const Dashboard = ({ onNavigateProjects }) => {
   const { metrics, riskOverview, recentProjects, recentTasks, materialAlerts } = mockDashboardData;
 
   return (
@@ -28,7 +27,12 @@ export const Dashboard = () => {
 
         <div className="dashboard-actions">
           <button className="btn btn-outline">Export Summary</button>
-          <button className="btn btn-primary">+ New Project</button>
+          <button
+            className="btn btn-primary"
+            onClick={onNavigateProjects}
+          >
+            + New Project
+          </button>
         </div>
       </div>
 

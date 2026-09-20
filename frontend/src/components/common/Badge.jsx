@@ -3,25 +3,52 @@ import React from 'react';
 export const StatusBadge = ({ status }) => {
   const getBadgeClass = (val) => {
     switch (val?.toLowerCase()) {
-      case 'on track':
       case 'completed':
+        return 'badge-status-completed';
+      case 'in progress':
+        return 'badge-status-inprogress';
+      case 'on hold':
+        return 'badge-status-onhold';
+      case 'planning':
+        return 'badge-status-planning';
+      // Legacy or other mappings
+      case 'on track':
         return 'badge-on-track';
       case 'at risk':
         return 'badge-at-risk';
       case 'delayed':
       case 'critical low':
         return 'badge-delayed';
-      case 'in progress':
-        return 'badge-in-progress';
       default:
-        return 'badge-in-progress';
+        return 'badge-status-planning';
     }
   };
 
   return (
     <span className={`status-badge ${getBadgeClass(status)}`}>
-      <span style={{ fontSize: '10px' }}>●</span>
+      <span className="badge-dot">●</span>
       {status}
+    </span>
+  );
+};
+
+export const RiskBadge = ({ riskLevel }) => {
+  const getRiskClass = (val) => {
+    switch (val?.toLowerCase()) {
+      case 'high':
+        return 'badge-risk-high';
+      case 'medium':
+        return 'badge-risk-medium';
+      case 'low':
+      default:
+        return 'badge-risk-low';
+    }
+  };
+
+  return (
+    <span className={`risk-badge ${getRiskClass(riskLevel)}`}>
+      <span className="badge-dot">●</span>
+      {riskLevel} Risk
     </span>
   );
 };
