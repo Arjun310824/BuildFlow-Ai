@@ -29,7 +29,7 @@ export const DataDrawer = ({
       <div className="data-drawer-panel" onClick={(e) => e.stopPropagation()}>
         <div className="data-drawer-header">
           <div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#FFFFFF' }}>{title}</h3>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)' }}>{title}</h3>
             {subtitle && (
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{subtitle}</span>
             )}

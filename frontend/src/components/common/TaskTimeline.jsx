@@ -16,14 +16,15 @@ export const TaskTimeline = ({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '220px 110px 1fr 110px',
-          padding: '10px 16px',
+          gridTemplateColumns: '260px 120px 1fr 120px',
+          padding: '12px 18px',
           borderBottom: '1px solid var(--border-color)',
           fontSize: '0.74rem',
           fontWeight: 700,
           color: 'var(--text-muted)',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
+          background: 'var(--bg-subtle)',
         }}
       >
         <span>Task & Assignee</span>
@@ -60,7 +61,7 @@ export const TaskTimeline = ({
                   {isDelayed && (
                     <IconAlertTriangle size={14} color="#EF4444" style={{ flexShrink: 0 }} />
                   )}
-                  <span style={{ fontWeight: 600, fontSize: '0.86rem', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {task.title || task.name}
                   </span>
                 </div>

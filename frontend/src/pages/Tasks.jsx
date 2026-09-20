@@ -25,13 +25,13 @@ export const Tasks = ({
 }) => {
   const { t } = useTranslation();
 
-  // Tasks state directly from backend MongoDB
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Tasks state directly from backend MongoDB with fallback to initial props
+  const [tasks, setTasks] = useState(initialTasksProp && initialTasksProp.length > 0 ? initialTasksProp : []);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // View state: 'timeline' | 'table'
-  const [viewMode, setViewMode] = useState('timeline');
+  // View state: 'table' | 'timeline' (default to 'table' so users see everything clearly)
+  const [viewMode, setViewMode] = useState('table');
   const [selectedTaskForDrawer, setSelectedTaskForDrawer] = useState(null);
 
   // Filters state
@@ -53,18 +53,24 @@ export const Tasks = ({
       setLoading(true);
       setError(null);
       const res = await getTasks();
-      if (res && res.success && Array.isArray(res.data)) {
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
         setTasks(res.data);
+      } else if (initialTasksProp && initialTasksProp.length > 0) {
+        setTasks(initialTasksProp);
       } else {
         setTasks([]);
       }
     } catch (err) {
       console.error('Error fetching tasks from MongoDB:', err);
-      setError(err.message || 'Failed to load tasks from server.');
+      if (initialTasksProp && initialTasksProp.length > 0) {
+        setTasks(initialTasksProp);
+      } else {
+        setError(err.message || 'Failed to load tasks from server.');
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [initialTasksProp]);
 
   useEffect(() => {
     fetchTasks();
@@ -234,12 +240,22 @@ export const Tasks = ({
           <p>{t('tasks.subtitle')}</p>
         </div>
         <div className="page-header-actions">
-          <button
-            className="btn btn-secondary"
-            onClick={() => setViewMode((prev) => (prev === 'timeline' ? 'table' : 'timeline'))}
-          >
-            {viewMode === 'timeline' ? 'Table View' : 'Timeline Gantt View'}
-          </button>
+          <div style={{ display: 'inline-flex', background: 'var(--bg-subtle)', padding: '3px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', gap: '4px' }}>
+            <button
+              className={`btn btn-sm ${viewMode === 'table' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ border: 'none', padding: '6px 12px', fontSize: '0.82rem' }}
+              onClick={() => setViewMode('table')}
+            >
+              📋 Table View
+            </button>
+            <button
+              className={`btn btn-sm ${viewMode === 'timeline' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ border: 'none', padding: '6px 12px', fontSize: '0.82rem' }}
+              onClick={() => setViewMode('timeline')}
+            >
+              📊 Timeline Gantt
+            </button>
+          </div>
           <button
             className="btn btn-secondary"
             onClick={fetchTasks}
@@ -480,13 +496,13 @@ export const Tasks = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div style={{ padding: '12px', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block' }}>Project</span>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#FFFFFF' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-main)' }}>
                   {getTaskProjectName(selectedTaskForDrawer)}
                 </span>
               </div>
               <div style={{ padding: '12px', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block' }}>Assignee</span>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#FFFFFF' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-main)' }}>
                   {selectedTaskForDrawer.assignedTo || 'Unassigned'}
                 </span>
               </div>
@@ -508,7 +524,7 @@ export const Tasks = ({
             <div style={{ padding: '14px', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Completion Progress</span>
-                <span style={{ fontWeight: 700, color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
+                <span style={{ fontWeight: 700, color: 'var(--color-accent)', fontFamily: 'var(--font-mono)' }}>
                   {selectedTaskForDrawer.progress || 0}%
                 </span>
               </div>
@@ -525,8 +541,9 @@ export const Tasks = ({
                       className="btn btn-secondary btn-sm"
                       style={{
                         fontSize: '0.74rem',
-                        borderColor: selectedTaskForDrawer.status === st ? 'var(--accent-cyan)' : 'var(--border-color)',
-                        color: selectedTaskForDrawer.status === st ? 'var(--accent-cyan)' : '#FFFFFF',
+                        borderColor: selectedTaskForDrawer.status === st ? 'var(--color-accent)' : 'var(--border-color)',
+                        color: selectedTaskForDrawer.status === st ? 'var(--color-accent)' : 'var(--text-main)',
+                        fontWeight: selectedTaskForDrawer.status === st ? 700 : 500,
                       }}
                       onClick={async () => {
                         const tId = selectedTaskForDrawer._id || selectedTaskForDrawer.id;
@@ -548,7 +565,7 @@ export const Tasks = ({
             {selectedTaskForDrawer.description && (
               <div style={{ padding: '12px', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-md)' }}>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Description</span>
-                <p style={{ fontSize: '0.84rem', color: '#E2E8F0', lineHeight: '1.45' }}>
+                <p style={{ fontSize: '0.84rem', color: 'var(--text-main)', lineHeight: '1.45' }}>
                   {selectedTaskForDrawer.description}
                 </p>
               </div>
