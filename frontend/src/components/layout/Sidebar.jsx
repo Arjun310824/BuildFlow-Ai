@@ -10,251 +10,163 @@ import {
   IconReports,
   IconInsights,
   IconAlerts,
-  IconSettings,
-  IconChevronDown,
   IconChevronRight,
+  IconChevronDown,
 } from '../common/Icons';
 
+/**
+ * Sidebar: Professional Construction Intelligence Command Center Navigation.
+ * Sections: COMMAND CENTER, OPERATIONS, INTELLIGENCE, REPORTING.
+ * Supports expanded and collapsed states, active indicators, and smooth micro-interactions.
+ */
 export const Sidebar = ({
   activeTab,
   onSelectTab,
   isOpen,
   onCloseMobile,
-  unreadAlertsCount = 3,
+  unreadAlertsCount = 4,
+  isCollapsed = false,
+  onToggleCollapse,
 }) => {
   const { t } = useTranslation();
-
-  // Collapsible state for submenu items
-  const [openSubmenus, setOpenSubmenus] = useState({
-    projects: true,
-    tasks: false,
-    materials: false,
-  });
-
-  const toggleSubmenu = (key, e) => {
-    e.stopPropagation();
-    setOpenSubmenus((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
 
   const handleNavClick = (tabId) => {
     onSelectTab(tabId);
     if (onCloseMobile) onCloseMobile();
   };
 
+  const navSections = [
+    {
+      label: 'COMMAND CENTER',
+      items: [
+        { id: 'dashboard', label: 'Dashboard', icon: <IconDashboard size={18} /> },
+        { id: 'projects', label: 'Projects', icon: <IconProjects size={18} /> },
+      ],
+    },
+    {
+      label: 'OPERATIONS',
+      items: [
+        { id: 'tasks', label: 'Tasks', icon: <IconTasks size={18} /> },
+        { id: 'materials', label: 'Materials', icon: <IconMaterials size={18} /> },
+        { id: 'site-updates', label: 'Site Updates', icon: <IconSiteUpdates size={18} /> },
+        { id: 'documents', label: 'Documents', icon: <IconDocuments size={18} /> },
+      ],
+    },
+    {
+      label: 'INTELLIGENCE',
+      items: [
+        {
+          id: 'insights',
+          label: 'AI Insights',
+          icon: <IconInsights size={18} />,
+          badge: 'GEMINI',
+          badgeColor: 'var(--accent-cyan)',
+        },
+        {
+          id: 'risk-radar',
+          label: 'Risk Radar',
+          icon: <span style={{ fontSize: '15px' }}>◈</span>,
+        },
+        {
+          id: 'alerts',
+          label: 'Action Center',
+          icon: <IconAlerts size={18} />,
+          badge: unreadAlertsCount > 0 ? unreadAlertsCount : null,
+          badgeColor: '#EF4444',
+        },
+      ],
+    },
+    {
+      label: 'REPORTING',
+      items: [
+        { id: 'reports', label: 'Reports', icon: <IconReports size={18} /> },
+      ],
+    },
+  ];
+
   return (
     <>
       {/* Mobile Backdrop */}
       {isOpen && <div className="sidebar-backdrop" onClick={onCloseMobile} />}
 
-      <aside className={`sidebar ${isOpen ? 'mobile-open' : ''}`}>
+      <aside className={`sidebar ${isOpen ? 'mobile-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
         {/* Brand Header */}
         <div className="sidebar-header">
-          <div className="brand-logo" onClick={() => handleNavClick('dashboard')} style={{ cursor: 'pointer' }}>
+          <div
+            className="brand-logo"
+            onClick={() => handleNavClick('dashboard')}
+            style={{ cursor: 'pointer', overflow: 'hidden' }}
+          >
             <div className="brand-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <rect x="3" y="3" width="7" height="9" rx="1" />
                 <rect x="14" y="3" width="7" height="5" rx="1" />
                 <rect x="14" y="12" width="7" height="9" rx="1" />
                 <rect x="3" y="16" width="7" height="5" rx="1" />
               </svg>
             </div>
-            <span>
-              BUILD<span style={{ color: 'var(--color-accent)' }}>FLOW</span> AI
-            </span>
+            {!isCollapsed && (
+              <span style={{ whiteSpace: 'nowrap' }}>
+                BUILD<span style={{ color: 'var(--accent-cyan)' }}>FLOW</span> AI
+              </span>
+            )}
           </div>
+
+          {onToggleCollapse && (
+            <button
+              className="sidebar-collapse-toggle"
+              onClick={onToggleCollapse}
+              title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+              aria-label="Toggle Sidebar"
+            >
+              {isCollapsed ? <IconChevronRight size={14} /> : <span style={{ fontSize: '12px' }}>◀</span>}
+            </button>
+          )}
         </div>
 
-        {/* Sidebar Nav Items */}
+        {/* Sidebar Nav Sections */}
         <div className="sidebar-nav-container">
-          {/* Dashboard */}
-          <button
-            className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => handleNavClick('dashboard')}
-          >
-            <span className="nav-icon"><IconDashboard /></span>
-            <span>{t('navigation.dashboard')}</span>
-          </button>
+          {navSections.map((section) => (
+            <div key={section.label} style={{ marginBottom: '8px' }}>
+              {!isCollapsed && (
+                <div className="nav-group-label">{section.label}</div>
+              )}
 
-          {/* Projects with Submenu */}
-          <div>
-            <button
-              className={`nav-btn ${
-                ['projects', 'add-project', 'project-details'].includes(activeTab) ? 'active' : ''
-              }`}
-              onClick={() => handleNavClick('projects')}
-            >
-              <span className="nav-icon"><IconProjects /></span>
-              <span>{t('navigation.projects')}</span>
-              <span
-                onClick={(e) => toggleSubmenu('projects', e)}
-                style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}
-              >
-                {openSubmenus.projects ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
-              </span>
-            </button>
-            {openSubmenus.projects && (
-              <div className="nav-sub-items">
-                <button
-                  className={`subnav-btn ${activeTab === 'projects' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('projects')}
-                >
-                  {t('navigation.allProjects')}
-                </button>
-                <button
-                  className={`subnav-btn ${activeTab === 'add-project' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('add-project')}
-                >
-                  + {t('projects.addProject')}
-                </button>
-                <button
-                  className={`subnav-btn ${activeTab === 'project-details' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('project-details')}
-                >
-                  {t('navigation.projectDetails')}
-                </button>
-              </div>
-            )}
-          </div>
+              {section.items.map((item) => {
+                const isActive =
+                  activeTab === item.id ||
+                  (item.id === 'projects' && ['add-project', 'project-details'].includes(activeTab)) ||
+                  (item.id === 'tasks' && activeTab === 'add-task') ||
+                  (item.id === 'materials' && activeTab === 'suppliers') ||
+                  (item.id === 'risk-radar' && activeTab === 'risk-radar');
 
-          {/* Tasks with Submenu */}
-          <div>
-            <button
-              className={`nav-btn ${['tasks', 'add-task'].includes(activeTab) ? 'active' : ''}`}
-              onClick={() => handleNavClick('tasks')}
-            >
-              <span className="nav-icon"><IconTasks /></span>
-              <span>{t('navigation.tasks')}</span>
-              <span
-                onClick={(e) => toggleSubmenu('tasks', e)}
-                style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}
-              >
-                {openSubmenus.tasks ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
-              </span>
-            </button>
-            {openSubmenus.tasks && (
-              <div className="nav-sub-items">
-                <button
-                  className={`subnav-btn ${activeTab === 'tasks' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('tasks')}
-                >
-                  {t('navigation.allTasks')}
-                </button>
-                <button
-                  className={`subnav-btn ${activeTab === 'add-task' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('add-task')}
-                >
-                  + {t('tasks.addTask')}
-                </button>
-              </div>
-            )}
-          </div>
+                return (
+                  <button
+                    key={item.id}
+                    className={`nav-btn ${isActive ? 'active' : ''}`}
+                    onClick={() => handleNavClick(item.id)}
+                    title={isCollapsed ? item.label : undefined}
+                  >
+                    <span className="nav-icon">{item.icon}</span>
+                    {!isCollapsed && <span>{item.label}</span>}
 
-          {/* Materials with Submenu */}
-          <div>
-            <button
-              className={`nav-btn ${['materials', 'suppliers'].includes(activeTab) ? 'active' : ''}`}
-              onClick={() => handleNavClick('materials')}
-            >
-              <span className="nav-icon"><IconMaterials /></span>
-              <span>{t('navigation.materials')}</span>
-              <span
-                onClick={(e) => toggleSubmenu('materials', e)}
-                style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}
-              >
-                {openSubmenus.materials ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
-              </span>
-            </button>
-            {openSubmenus.materials && (
-              <div className="nav-sub-items">
-                <button
-                  className={`subnav-btn ${activeTab === 'materials' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('materials')}
-                >
-                  {t('navigation.inventory')}
-                </button>
-                <button
-                  className={`subnav-btn ${activeTab === 'suppliers' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('suppliers')}
-                >
-                  {t('navigation.suppliers')}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Site Updates */}
-          <button
-            className={`nav-btn ${activeTab === 'site-updates' ? 'active' : ''}`}
-            onClick={() => handleNavClick('site-updates')}
-          >
-            <span className="nav-icon"><IconSiteUpdates /></span>
-            <span>{t('navigation.siteUpdates')}</span>
-          </button>
-
-          {/* Documents */}
-          <button
-            className={`nav-btn ${activeTab === 'documents' ? 'active' : ''}`}
-            onClick={() => handleNavClick('documents')}
-          >
-            <span className="nav-icon"><IconDocuments /></span>
-            <span>{t('navigation.documents')}</span>
-          </button>
-
-          {/* Reports */}
-          <button
-            className={`nav-btn ${activeTab === 'reports' ? 'active' : ''}`}
-            onClick={() => handleNavClick('reports')}
-          >
-            <span className="nav-icon"><IconReports /></span>
-            <span>{t('navigation.reports')}</span>
-          </button>
-
-          <div className="nav-divider" />
-
-          {/* AI Insights */}
-          <button
-            className={`nav-btn ${activeTab === 'insights' ? 'active' : ''}`}
-            onClick={() => handleNavClick('insights')}
-          >
-            <span className="nav-icon" style={{ color: 'var(--color-accent)' }}><IconInsights /></span>
-            <span>{t('navigation.aiInsights')}</span>
-            <span
-              style={{
-                marginLeft: 'auto',
-                fontSize: '0.68rem',
-                fontWeight: 700,
-                padding: '2px 6px',
-                borderRadius: '4px',
-                background: 'var(--color-accent-subtle)',
-                color: 'var(--color-accent)',
-              }}
-            >
-              GEMINI
-            </span>
-          </button>
-
-          {/* Alerts */}
-          <button
-            className={`nav-btn ${activeTab === 'alerts' ? 'active' : ''}`}
-            onClick={() => handleNavClick('alerts')}
-          >
-            <span className="nav-icon"><IconAlerts /></span>
-            <span>{t('navigation.alerts')}</span>
-            {unreadAlertsCount > 0 && (
-              <span className="nav-badge-pill" style={{ background: '#fee2e2', color: '#b91c1c' }}>
-                {unreadAlertsCount}
-              </span>
-            )}
-          </button>
-
-          {/* Settings */}
-          <button
-            className={`nav-btn ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => handleNavClick('settings')}
-          >
-            <span className="nav-icon"><IconSettings /></span>
-            <span>{t('navigation.settings')}</span>
-          </button>
+                    {!isCollapsed && item.badge && (
+                      <span
+                        className="nav-badge-pill"
+                        style={{
+                          background: item.badgeColor === '#EF4444' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(0, 217, 255, 0.12)',
+                          color: item.badgeColor,
+                          border: `1px solid ${item.badgeColor}`,
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         {/* User Profile Footer */}
@@ -263,15 +175,18 @@ export const Sidebar = ({
             className="user-profile-card"
             onClick={() => handleNavClick('settings')}
             style={{ cursor: 'pointer' }}
+            title={isCollapsed ? 'Alex Morgan — Project Director' : undefined}
           >
             <div className="user-avatar-circle">
               AM
               <span className="status-indicator-dot" />
             </div>
-            <div className="user-meta-info">
-              <div className="user-meta-name">Alex Morgan</div>
-              <div className="user-meta-role">{t('common.manager')}</div>
-            </div>
+            {!isCollapsed && (
+              <div className="user-meta-info">
+                <div className="user-meta-name">Alex Morgan</div>
+                <div className="user-meta-role">Project Director</div>
+              </div>
+            )}
           </div>
         </div>
       </aside>

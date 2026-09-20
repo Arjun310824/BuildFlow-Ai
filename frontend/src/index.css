@@ -88,13 +88,16 @@
 }
 
 /* Base Resets */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   min-height: 100%;
   background-color: var(--bg-page);
@@ -105,7 +108,10 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-button, input, select, textarea {
+button,
+input,
+select,
+textarea {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
@@ -127,13 +133,16 @@ a {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: var(--radius-full);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
@@ -726,31 +735,43 @@ a {
   line-height: 1;
 }
 
-.badge-on-track, .badge-healthy, .badge-completed, .badge-success {
+.badge-on-track,
+.badge-healthy,
+.badge-completed,
+.badge-success {
   background: var(--color-success-bg);
   color: var(--color-success-text);
   border: 1px solid var(--color-success-border);
 }
 
-.badge-at-risk, .badge-warning, .badge-low-stock, .badge-medium {
+.badge-at-risk,
+.badge-warning,
+.badge-low-stock,
+.badge-medium {
   background: var(--color-warning-bg);
   color: var(--color-warning-text);
   border: 1px solid var(--color-warning-border);
 }
 
-.badge-delayed, .badge-high-risk, .badge-critical, .badge-danger, .badge-out-of-stock {
+.badge-delayed,
+.badge-high-risk,
+.badge-critical,
+.badge-danger,
+.badge-out-of-stock {
   background: var(--color-danger-bg);
   color: var(--color-danger-text);
   border: 1px solid var(--color-danger-border);
 }
 
-.badge-in-progress, .badge-info {
+.badge-in-progress,
+.badge-info {
   background: var(--color-info-bg);
   color: var(--color-info-text);
   border: 1px solid var(--color-info-border);
 }
 
-.badge-pending, .badge-neutral {
+.badge-pending,
+.badge-neutral {
   background: var(--bg-subtle);
   color: var(--text-muted);
   border: 1px solid var(--border-color);
@@ -784,9 +805,11 @@ a {
 .progress-fill.success {
   background: var(--color-success);
 }
+
 .progress-fill.warning {
   background: var(--color-warning);
 }
+
 .progress-fill.danger {
   background: var(--color-danger);
 }
@@ -1105,9 +1128,11 @@ textarea.form-control {
 .toast-item.success {
   border-left: 4px solid var(--color-success);
 }
+
 .toast-item.warning {
   border-left: 4px solid var(--color-warning);
 }
+
 .toast-item.info {
   border-left: 4px solid var(--color-accent);
 }
@@ -1117,6 +1142,7 @@ textarea.form-control {
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1130,6 +1156,7 @@ textarea.form-control {
   .stats-grid-4 {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .form-grid-2 {
     grid-template-columns: 1fr;
   }
@@ -1139,27 +1166,34 @@ textarea.form-control {
   .sidebar {
     transform: translateX(-100%);
   }
+
   .sidebar.mobile-open {
     transform: translateX(0);
   }
+
   .sidebar-backdrop {
     position: fixed;
     inset: 0;
     background: rgba(15, 23, 42, 0.4);
     z-index: 39;
   }
+
   .main-wrapper {
     margin-left: 0;
   }
+
   .top-navbar {
     padding: 0 16px;
   }
+
   .page-container {
     padding: 20px 16px 48px;
   }
+
   .stats-grid-4 {
     grid-template-columns: 1fr;
   }
+
   .search-bar-box {
     display: none;
   }
@@ -1533,13 +1567,25 @@ textarea.form-control {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px) scale(0.97); opacity: 0; }
-  to { transform: translateY(0) scale(1); opacity: 1; }
+  from {
+    transform: translateY(20px) scale(0.97);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
 
 .modal-header {
@@ -1610,7 +1656,8 @@ textarea.form-control {
   color: var(--status-danger);
 }
 
-.form-input, .form-select {
+.form-input,
+.form-select {
   background: var(--bg-input);
   border: 1px solid var(--border-cyan);
   border-radius: var(--radius-md);
@@ -1621,7 +1668,8 @@ textarea.form-control {
   transition: all var(--transition-fast);
 }
 
-.form-input:focus, .form-select:focus {
+.form-input:focus,
+.form-select:focus {
   outline: none;
   border-color: var(--accent-cyan);
   box-shadow: 0 0 10px var(--accent-cyan-glow);
@@ -1658,4 +1706,3 @@ textarea.form-control {
   padding-top: 18px;
   border-top: 1px solid var(--border-cyan);
 }
-

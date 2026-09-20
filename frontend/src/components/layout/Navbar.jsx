@@ -8,6 +8,10 @@ import {
   IconChevronDown,
 } from '../common/Icons';
 
+/**
+ * Top Navbar: Professional Construction Intelligence Command Center Top Bar.
+ * Global Search (⌘K), Project Context Switcher, ● AI ONLINE status, Notifications, User Profile.
+ */
 export const Navbar = ({
   pageTitle = 'Dashboard',
   pageSubtitle = '',
@@ -16,6 +20,11 @@ export const Navbar = ({
   onSearchChange,
   onNavigate,
   recentAlerts = [],
+  currentUser = null,
+  onSignOut,
+  projects = [],
+  selectedProjectId,
+  onSelectProject,
 }) => {
   const { t, i18n } = useTranslation();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -38,6 +47,14 @@ export const Navbar = ({
     setShowLangMenu(false);
   };
 
+  const userName = currentUser?.name || 'Alex Morgan';
+  const userEmail = currentUser?.email || 'alex@buildflow.ai';
+  const userAvatar = currentUser?.avatar || 'AM';
+
+  const selectedProjectObj = projects.find(
+    (p) => (p._id || p.id) === selectedProjectId
+  ) || projects[0] || { name: 'All Sites Portfolio' };
+
   return (
     <header className="top-navbar">
       <div className="navbar-left">
@@ -45,8 +62,8 @@ export const Navbar = ({
           className="nav-icon-action-btn"
           onClick={onToggleMobileSidebar}
           aria-label="Toggle navigation menu"
-          style={{ display: 'none' }}
           id="mobile-nav-btn"
+          style={{ display: 'none' }}
         >
           <IconMenu />
         </button>
@@ -57,6 +74,39 @@ export const Navbar = ({
             <span className="page-title-badge">{pageSubtitle}</span>
           )}
         </div>
+
+        {/* Current Project Context Selector Dropdown */}
+        {projects.length > 0 && (
+          <div style={{ marginLeft: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
+              SITE:
+            </span>
+            <select
+              className="filter-select"
+              value={selectedProjectId || ''}
+              onChange={(e) => onSelectProject && onSelectProject(e.target.value)}
+              style={{
+                fontSize: '0.8rem',
+                padding: '4px 10px',
+                height: '32px',
+                maxWidth: '220px',
+                background: 'var(--bg-input)',
+                borderColor: 'var(--border-color)',
+                color: '#FFFFFF',
+              }}
+              title="Switch Active Project Context"
+            >
+              {projects.map((p) => {
+                const id = p._id || p.id;
+                return (
+                  <option key={id} value={id}>
+                    {p.name}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="navbar-right">
@@ -67,14 +117,20 @@ export const Navbar = ({
           </span>
           <input
             type="text"
-            placeholder={t('navbar.searchPlaceholder')}
+            placeholder="Search projects, tasks, materials..."
             value={searchQuery || ''}
             onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
           />
           <span className="search-shortcut">⌘K</span>
         </div>
 
-        {/* Global Language Quick Selector */}
+        {/* AI Status Indicator */}
+        <div className="ai-status-pill" title="Gemini AI Intelligence Engine is connected and monitoring live telemetry">
+          <span className="ai-pulse-dot" />
+          <span>● AI ONLINE</span>
+        </div>
+
+        {/* Global Language Selector */}
         <div style={{ position: 'relative' }}>
           <button
             className="btn btn-secondary btn-sm"
@@ -84,15 +140,14 @@ export const Navbar = ({
               alignItems: 'center',
               gap: '6px',
               fontWeight: 600,
-              fontSize: '0.82rem',
+              fontSize: '0.8rem',
               padding: '6px 10px',
-              borderRadius: 'var(--radius-md)',
             }}
-            title={t('settings.languageLabel')}
+            title="Switch Language"
           >
             <span>{activeLangObj.flag}</span>
             <span>{activeLangObj.label}</span>
-            <IconChevronDown size={13} />
+            <IconChevronDown size={12} />
           </button>
 
           {showLangMenu && (
@@ -102,7 +157,7 @@ export const Navbar = ({
                 top: '110%',
                 right: 0,
                 width: '160px',
-                background: '#ffffff',
+                background: 'var(--bg-surface)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-dropdown)',
@@ -115,7 +170,7 @@ export const Navbar = ({
                   key={lang.code}
                   className={`nav-btn ${currentLang === lang.code ? 'active' : ''}`}
                   style={{
-                    fontSize: '0.84rem',
+                    fontSize: '0.82rem',
                     padding: '8px 10px',
                     display: 'flex',
                     alignItems: 'center',
@@ -129,7 +184,7 @@ export const Navbar = ({
                   <span>{lang.flag}</span>
                   <span>{lang.label}</span>
                   {currentLang === lang.code && (
-                    <span style={{ marginLeft: 'auto', color: 'var(--color-accent)' }}>✓</span>
+                    <span style={{ marginLeft: 'auto', color: 'var(--accent-cyan)' }}>✓</span>
                   )}
                 </button>
               ))}
@@ -143,9 +198,9 @@ export const Navbar = ({
             className="btn-quick-create"
             onClick={() => setShowQuickAdd((prev) => !prev)}
           >
-            <IconPlus size={16} />
-            <span>{t('navbar.quickAdd')}</span>
-            <IconChevronDown size={14} />
+            <IconPlus size={15} />
+            <span>New</span>
+            <IconChevronDown size={13} />
           </button>
 
           {showQuickAdd && (
@@ -155,7 +210,7 @@ export const Navbar = ({
                 top: '110%',
                 right: 0,
                 width: '180px',
-                background: '#ffffff',
+                background: 'var(--bg-surface)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-dropdown)',
@@ -165,47 +220,57 @@ export const Navbar = ({
             >
               <button
                 className="nav-btn"
-                style={{ fontSize: '0.82rem', padding: '7px 10px' }}
+                style={{ fontSize: '0.82rem', padding: '8px 12px' }}
                 onClick={() => {
                   setShowQuickAdd(false);
-                  onNavigate('add-project');
+                  onNavigate && onNavigate('add-project');
                 }}
               >
-                + {t('projects.addProject')}
+                + New Project
               </button>
               <button
                 className="nav-btn"
-                style={{ fontSize: '0.82rem', padding: '7px 10px' }}
+                style={{ fontSize: '0.82rem', padding: '8px 12px' }}
                 onClick={() => {
                   setShowQuickAdd(false);
-                  onNavigate('add-task');
+                  onNavigate && onNavigate('add-task');
                 }}
               >
-                + {t('tasks.addTask')}
+                + Assign Task
               </button>
               <button
                 className="nav-btn"
-                style={{ fontSize: '0.82rem', padding: '7px 10px' }}
+                style={{ fontSize: '0.82rem', padding: '8px 12px' }}
                 onClick={() => {
                   setShowQuickAdd(false);
-                  onNavigate('site-updates');
+                  onNavigate && onNavigate('materials');
                 }}
               >
-                + {t('navbar.siteUpdate')}
+                + Log Material
+              </button>
+              <button
+                className="nav-btn"
+                style={{ fontSize: '0.82rem', padding: '8px 12px' }}
+                onClick={() => {
+                  setShowQuickAdd(false);
+                  onNavigate && onNavigate('site-updates');
+                }}
+              >
+                + Daily Site Log
               </button>
             </div>
           )}
         </div>
 
-        {/* Notification Icon */}
+        {/* Notifications Icon with Unread Dot */}
         <div style={{ position: 'relative' }}>
           <button
             className="nav-icon-action-btn"
             onClick={() => setShowNotifications((prev) => !prev)}
             aria-label="View notifications"
           >
-            <IconAlerts size={18} />
-            <span className="nav-notification-dot" />
+            <IconAlerts size={17} />
+            {recentAlerts.length > 0 && <span className="nav-notification-dot" />}
           </button>
 
           {showNotifications && (
@@ -215,11 +280,11 @@ export const Navbar = ({
                 top: '110%',
                 right: 0,
                 width: '320px',
-                background: '#ffffff',
+                background: 'var(--bg-surface)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-lg)',
                 boxShadow: 'var(--shadow-dropdown)',
-                padding: '12px 16px',
+                padding: '14px',
                 zIndex: 100,
               }}
             >
@@ -229,41 +294,34 @@ export const Navbar = ({
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   marginBottom: '10px',
+                  paddingBottom: '8px',
+                  borderBottom: '1px solid var(--border-color)',
                 }}
               >
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t('navbar.recentAlerts')}</span>
-                <button
-                  style={{ fontSize: '0.75rem', color: 'var(--color-accent)', fontWeight: 600 }}
-                  onClick={() => {
-                    setShowNotifications(false);
-                    onNavigate('alerts');
-                  }}
-                >
-                  {t('common.viewAll')}
-                </button>
+                <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#FFFFFF' }}>Action Items</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', cursor: 'pointer' }} onClick={() => { setShowNotifications(false); onNavigate('alerts'); }}>
+                  View All &rarr;
+                </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {recentAlerts.slice(0, 3).map((alt) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
+                {recentAlerts.slice(0, 3).map((a) => (
                   <div
-                    key={alt.id}
-                    onClick={() => {
-                      setShowNotifications(false);
-                      onNavigate('alerts');
-                    }}
+                    key={a.id}
                     style={{
                       padding: '8px 10px',
-                      background: 'var(--bg-subtle)',
-                      borderRadius: 'var(--radius-md)',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-surface-elevated)',
+                      borderLeft: a.type === 'Critical' ? '3px solid #EF4444' : '3px solid #F59E0B',
                       cursor: 'pointer',
                     }}
+                    onClick={() => {
+                      setShowNotifications(false);
+                      onNavigate && onNavigate('alerts');
+                    }}
                   >
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                      {alt.title}
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      {alt.project} • {alt.time}
-                    </div>
+                    <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#FFFFFF' }}>{a.title}</div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>{a.message}</div>
                   </div>
                 ))}
               </div>
@@ -276,14 +334,24 @@ export const Navbar = ({
           <button
             className="navbar-user-trigger"
             onClick={() => setShowProfileMenu((prev) => !prev)}
+            aria-label="User account menu"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '4px 8px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-surface)',
+            }}
           >
-            <div
-              className="user-avatar-circle"
-              style={{ width: '32px', height: '32px', fontSize: '0.78rem' }}
-            >
-              AM
+            <div className="user-avatar-circle" style={{ width: '28px', height: '28px', fontSize: '0.74rem' }}>
+              {userAvatar}
             </div>
-            <IconChevronDown size={14} color="var(--text-muted)" />
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#FFFFFF' }}>
+              {userName}
+            </span>
+            <IconChevronDown size={12} color="var(--text-muted)" />
           </button>
 
           {showProfileMenu && (
@@ -292,49 +360,40 @@ export const Navbar = ({
                 position: 'absolute',
                 top: '110%',
                 right: 0,
-                width: '200px',
-                background: '#ffffff',
+                width: '210px',
+                background: 'var(--bg-surface)',
                 border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
+                borderRadius: 'var(--radius-lg)',
                 boxShadow: 'var(--shadow-dropdown)',
                 padding: '8px',
                 zIndex: 100,
               }}
             >
-              <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-color)', marginBottom: '4px' }}>
-                <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>Alex Morgan</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>alex@buildflow.ai</div>
+              <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-color)', marginBottom: '6px' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#FFFFFF' }}>{userName}</div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{userEmail}</div>
               </div>
+
               <button
                 className="nav-btn"
-                style={{ fontSize: '0.82rem', padding: '6px 10px' }}
+                style={{ fontSize: '0.82rem', padding: '8px 10px' }}
                 onClick={() => {
                   setShowProfileMenu(false);
-                  onNavigate('settings');
+                  onNavigate && onNavigate('settings');
                 }}
               >
-                {t('navbar.profileSettings')}
+                Settings & Preferences
               </button>
+
               <button
                 className="nav-btn"
-                style={{ fontSize: '0.82rem', padding: '6px 10px' }}
+                style={{ fontSize: '0.82rem', padding: '8px 10px', color: '#F87171' }}
                 onClick={() => {
                   setShowProfileMenu(false);
-                  onNavigate('dashboard');
+                  if (onSignOut) onSignOut();
                 }}
               >
-                {t('navbar.projectHub')}
-              </button>
-              <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }} />
-              <button
-                className="nav-btn"
-                style={{ fontSize: '0.82rem', padding: '6px 10px', color: 'var(--color-danger)' }}
-                onClick={() => {
-                  setShowProfileMenu(false);
-                  alert('Session logged out.');
-                }}
-              >
-                {t('navbar.signOut')}
+                Sign Out
               </button>
             </div>
           )}

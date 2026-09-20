@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StatusBadge, PriorityBadge, TypeBadge } from '../components/common/Badge';
+import { StatusBadge, PriorityBadge, TypeBadge, RiskBadge } from '../components/common/Badge';
 import { ProgressBar } from '../components/common/ProgressBar';
+import { DigitalConstructionSite } from '../components/common/DigitalConstructionSite';
+import { TaskTimeline } from '../components/common/TaskTimeline';
 import {
   IconCalendar,
   IconUser,
@@ -27,10 +29,9 @@ export const ProjectDetails = ({
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Fallback to Residential Tower A if none specified
+  // Fallback to first available project if none specified
   const currentProject =
     project ||
-    allProjects.find((p) => p.id === 'PRJ-101') ||
     allProjects[0] || {
       id: 'PRJ-101',
       name: 'Residential Tower A',
@@ -47,26 +48,53 @@ export const ProjectDetails = ({
       description: '42-story luxury residential high-rise with 3-tier underground parking.',
     };
 
+  const currentProjectId = (currentProject._id || currentProject.id || '').toString();
+  const currentProjectName = currentProject.name || '';
+
   // Filter entities linked to this project
-  const projectTasks = tasks.filter(
-    (t) => t.projectId === currentProject.id || t.project === currentProject.name
-  );
-  const projectMaterials = materials.filter(
-    (m) => m.projectId === currentProject.id || m.project === currentProject.name
-  );
-  const projectUpdates = siteUpdates.filter(
-    (u) => u.projectId === currentProject.id || u.project === currentProject.name
-  );
-  const projectDocs = documents.filter(
-    (d) => d.projectId === currentProject.id || d.project === currentProject.name
-  );
+  const projectTasks = tasks.filter((t) => {
+    const tskProjId = (t.projectId?._id || t.projectId || '').toString();
+    const tskProjName = t.projectId?.name || t.project || '';
+    return (
+      (currentProjectId && tskProjId === currentProjectId) ||
+      (currentProjectName && tskProjName === currentProjectName)
+    );
+  });
+
+  const projectMaterials = materials.filter((m) => {
+    const matProjId = (m.projectId?._id || m.projectId || '').toString();
+    const matProjName = m.projectId?.name || m.project || '';
+    return (
+      (currentProjectId && matProjId === currentProjectId) ||
+      (currentProjectName && matProjName === currentProjectName)
+    );
+  });
+
+  const projectUpdates = siteUpdates.filter((u) => {
+    const updProjId = (u.projectId?._id || u.projectId || '').toString();
+    const updProjName = u.project || '';
+    return (
+      (currentProjectId && updProjId === currentProjectId) ||
+      (currentProjectName && updProjName === currentProjectName)
+    );
+  });
+
+  const projectDocs = documents.filter((d) => {
+    const docProjId = (d.projectId?._id || d.projectId || '').toString();
+    const docProjName = d.project || '';
+    return (
+      (currentProjectId && docProjId === currentProjectId) ||
+      (currentProjectName && docProjName === currentProjectName)
+    );
+  });
 
   // Health Score styling
   const healthScore = currentProject.healthScore || 68;
   const isHealthRisk = healthScore < 75;
 
   const tabs = [
-    { id: 'overview', label: t('projectDetails.overview') },
+    { id: 'overview', label: 'Overview & Digital Twin' },
+    { id: 'schedule', label: 'Timeline & Schedule' },
     { id: 'tasks', label: t('navigation.tasks') },
     { id: 'materials', label: t('navigation.materials') },
     { id: 'site updates', label: t('navigation.siteUpdates') },
@@ -110,6 +138,7 @@ export const ProjectDetails = ({
                 {currentProject.name}
               </h1>
               <StatusBadge status={currentProject.status} />
+              <RiskBadge riskLevel={currentProject.risk || 'Low'} />
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
               {currentProject.description}
@@ -147,14 +176,14 @@ export const ProjectDetails = ({
                 width: '46px',
                 height: '46px',
                 borderRadius: '50%',
-                background: '#ffffff',
+                background: '#121B2D',
                 border: `3px solid ${isHealthRisk ? 'var(--color-warning)' : 'var(--color-success)'}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 800,
                 fontSize: '0.95rem',
-                color: 'var(--text-main)',
+                color: '#FFFFFF',
               }}
             >
               {healthScore}
@@ -219,9 +248,20 @@ export const ProjectDetails = ({
         ))}
       </div>
 
-      {/* Tab 1: Overview */}
+      {/* Tab 1: Overview with Digital Construction Site Signature Component */}
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Digital Twin Architectural Breakdown */}
+          <DigitalConstructionSite
+            project={currentProject}
+            tasks={projectTasks}
+            materials={projectMaterials}
+            onNavigate={(mod) => {
+              if (mod === 'tasks') setActiveTab('tasks');
+              else if (onNavigate) onNavigate(mod);
+            }}
+          />
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
             {/* Project Progress */}
             <div className="card">
@@ -330,6 +370,22 @@ export const ProjectDetails = ({
         </div>
       )}
 
+      {/* Tab: Schedule Timeline */}
+      {activeTab === 'schedule' && (
+        <div>
+          <div className="card-header" style={{ marginBottom: '14px' }}>
+            <div>
+              <div className="card-title">PROJECT TIMELINE & GANTT VIEW</div>
+              <div className="card-subtitle">Phased milestone tracking for {currentProject.name}</div>
+            </div>
+          </div>
+          <TaskTimeline
+            tasks={projectTasks}
+            onTaskClick={() => setActiveTab('tasks')}
+          />
+        </div>
+      )}
+
       {/* Tab 2: Tasks */}
       {activeTab === 'tasks' && (
         <div className="table-container">
@@ -345,19 +401,35 @@ export const ProjectDetails = ({
               </tr>
             </thead>
             <tbody>
-              {projectTasks.map((t) => (
-                <tr key={t.id}>
-                  <td>
-                    <div className="table-cell-title">{t.name}</div>
-                    <div className="table-cell-sub">{t.id}</div>
+              {projectTasks.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                    {t('tasks.noTasks')}
                   </td>
-                  <td>{t.assignedTo}</td>
-                  <td><PriorityBadge priority={t.priority} /></td>
-                  <td>{t.dueDate}</td>
-                  <td style={{ width: '150px' }}><ProgressBar progress={t.progress} /></td>
-                  <td><StatusBadge status={t.status} /></td>
                 </tr>
-              ))}
+              ) : (
+                projectTasks.map((t) => {
+                  const tId = t._id || t.id;
+                  const tTitle = t.title || t.name;
+                  const tDueDate = t.dueDate
+                    ? (typeof t.dueDate === 'string' && t.dueDate.includes('T') ? t.dueDate.slice(0, 10) : t.dueDate)
+                    : '—';
+
+                  return (
+                    <tr key={tId}>
+                      <td>
+                        <div className="table-cell-title">{tTitle}</div>
+                        <div className="table-cell-sub">{tId}</div>
+                      </td>
+                      <td>{t.assignedTo || 'Unassigned'}</td>
+                      <td><PriorityBadge priority={t.priority || 'Medium'} /></td>
+                      <td>{tDueDate}</td>
+                      <td style={{ width: '150px' }}><ProgressBar progress={Number(t.progress) || 0} /></td>
+                      <td><StatusBadge status={t.status || 'Not Started'} /></td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -378,16 +450,41 @@ export const ProjectDetails = ({
               </tr>
             </thead>
             <tbody>
-              {projectMaterials.map((m) => (
-                <tr key={m.id}>
-                  <td className="table-cell-title">{m.material}</td>
-                  <td>{m.required}</td>
-                  <td style={{ fontWeight: 600 }}>{m.available}</td>
-                  <td>{m.used}</td>
-                  <td>{m.supplier}</td>
-                  <td><StatusBadge status={m.status} /></td>
+              {projectMaterials.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                    {t('materials.noMaterials')}
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                projectMaterials.map((m) => {
+                  const mId = m._id || m.id;
+                  const mName = m.name || m.material;
+                  const reqQty =
+                    typeof m.requiredQuantity === 'number'
+                      ? `${m.requiredQuantity.toLocaleString()} ${m.unit || ''}`
+                      : (m.required || '—');
+                  const availQty =
+                    typeof m.availableQuantity === 'number'
+                      ? `${m.availableQuantity.toLocaleString()} ${m.unit || ''}`
+                      : (m.available || '—');
+                  const usedQty =
+                    typeof m.usedQuantity === 'number'
+                      ? `${m.usedQuantity.toLocaleString()} ${m.unit || ''}`
+                      : (m.used || '—');
+
+                  return (
+                    <tr key={mId}>
+                      <td className="table-cell-title">{mName}</td>
+                      <td>{reqQty}</td>
+                      <td style={{ fontWeight: 600 }}>{availQty}</td>
+                      <td>{usedQty}</td>
+                      <td>{m.supplier || m.category || 'Standard Vendor'}</td>
+                      <td><StatusBadge status={m.status} /></td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -396,25 +493,94 @@ export const ProjectDetails = ({
       {/* Tab 4: Site Updates */}
       {activeTab === 'site updates' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {projectUpdates.map((u) => (
-            <div key={u.id} className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.92rem' }}>{u.date} • {u.time}</span>
-                <span className="badge badge-info">{u.weather}</span>
-              </div>
-              <p style={{ fontSize: '0.86rem', color: 'var(--text-main)', marginBottom: '8px' }}>
-                {u.workCompleted}
-              </p>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                {t('dashboard.workersOnSite')} <strong>{u.workers}</strong> | {t('siteUpdates.supervisor')}: <strong>{u.supervisor}</strong>
-              </div>
-              {u.issues && (
-                <div style={{ marginTop: '8px', padding: '8px 12px', background: 'var(--color-danger-bg)', borderRadius: 'var(--radius-sm)', color: 'var(--color-danger-text)', fontSize: '0.8rem' }}>
-                  ⚠️ {u.issues}
+          {projectUpdates.map((u, idx) => {
+            const photoList = [
+              '/images/site_foundation.jpg',
+              '/images/site_facade.jpg',
+              '/images/site_mep.jpg',
+              '/images/site_crane.jpg',
+              '/images/site_excavation.jpg',
+              '/images/site_steel.jpg',
+              '/images/site_drone.jpg',
+              '/images/site_interior.jpg',
+            ];
+            const photoUrl = u.image || photoList[idx % photoList.length];
+
+            return (
+              <div
+                key={u.id}
+                className="card"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 160px',
+                  gap: '20px',
+                  alignItems: 'center',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.94rem', color: '#FFFFFF' }}>
+                      {u.date} • {u.time || '16:30'}
+                    </span>
+                    <span className="badge badge-info">{u.weather || 'Normal'}</span>
+                  </div>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '10px' }}>
+                    {u.workCompleted}
+                  </p>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    {t('dashboard.workersOnSite')}: <strong style={{ color: '#FFFFFF' }}>{u.workers} Active</strong> | {t('siteUpdates.supervisor')}: <strong style={{ color: '#FFFFFF' }}>{u.supervisor}</strong>
+                  </div>
+                  {u.issues && (
+                    <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-sm)', color: 'var(--color-danger)', fontSize: '0.8rem' }}>
+                      ⚠️ {u.issues}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Construction Site Photo */}
+                <div
+                  style={{
+                    width: '160px',
+                    height: '105px',
+                    borderRadius: 'var(--radius-md)',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(0, 217, 255, 0.28)',
+                    position: 'relative',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+                  }}
+                >
+                  <img
+                    src={photoUrl}
+                    alt="Site field photo"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/images/site_foundation.jpg';
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '4px',
+                      left: '6px',
+                      right: '6px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '0.64rem',
+                      fontWeight: 700,
+                      color: '#FFFFFF',
+                      background: 'rgba(11, 18, 32, 0.8)',
+                      padding: '2px 5px',
+                      borderRadius: '3px',
+                    }}
+                  >
+                    <span style={{ color: 'var(--accent-cyan)' }}>📸 Photo</span>
+                    <span>HD</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

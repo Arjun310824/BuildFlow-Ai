@@ -29,21 +29,16 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
     }
 
     const newProject = {
-      id: `PRJ-${Date.now().toString().slice(-4)}`,
-      name: formData.name,
-      code: formData.code,
-      location: formData.location || 'Downtown Sector, City Center',
-      client: formData.client || 'Apex Developments',
-      manager: formData.manager || 'Alex Morgan',
+      name: formData.name.trim(),
+      client: (formData.client || 'Apex Developments').trim(),
+      location: (formData.location || 'Downtown Sector, City Center').trim(),
+      manager: (formData.manager || 'Alex Morgan').trim(),
       startDate: formData.startDate || '2026-10-01',
+      endDate: formData.expectedCompletion || '2027-12-31',
       expectedCompletion: formData.expectedCompletion || '2027-12-31',
-      budget: formData.budget.startsWith('$') ? formData.budget : `$${formData.budget || '10,000,000'}`,
-      budgetNum: Number(formData.budget.replace(/[^0-9.-]+/g, '')) || 10000000,
-      spent: '$0',
-      spentNum: 0,
       progress: 0,
-      status: 'On Track',
-      healthScore: 95,
+      status: 'Planning',
+      risk: 'Low',
       category: formData.category,
       description: formData.description || 'New strategic construction development initiative.',
     };
