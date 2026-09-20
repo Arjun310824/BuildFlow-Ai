@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { analyzeProject, chatWithProject } from '../services/projectAnalysisService.js';
+import { analyzeProject as analyzeProjectService, chatWithProject } from '../services/projectAnalysisService.js';
 import Project from '../models/Project.js';
 import { analyzeProjectWithAI } from '../services/aiService.js';
 
@@ -19,7 +19,7 @@ export const handleAnalyzeProject = async (req, res, next) => {
       });
     }
 
-    const result = await analyzeProject(projectId);
+    const result = await analyzeProjectService(projectId);
 
     return res.status(200).json({
       success: true,
