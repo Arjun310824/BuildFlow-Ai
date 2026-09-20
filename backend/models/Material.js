@@ -20,7 +20,7 @@ export const computeMaterialStatus = (availableQuantity, requiredQuantity) => {
 };
 
 /**
- * Material Schema for BuildFlow AI Smart Construction Data Management
+ * Material Schema for BuildOps AI Smart Construction Data Management
  */
 const materialSchema = new mongoose.Schema(
   {

@@ -10,7 +10,7 @@ const router = Router();
 router.get('/', (req, res) => {
   res.status(200).json({
     status: 'ok',
-    message: 'BuildFlow AI backend is running',
+    message: 'BuildOps AI backend is running',
   });
 });
 

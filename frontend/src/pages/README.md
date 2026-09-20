@@ -1,4 +1,4 @@
-# Pages for BuildFlow AI
+# Pages for BuildOps AI
 # Application views corresponding to core modules:
 # 1. Dashboard (Overview & Analytics)
 # 2. Tasks (Task & Progress Tracking)

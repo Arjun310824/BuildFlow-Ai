@@ -7,7 +7,7 @@ const router = Router();
 router.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
-    message: 'BuildFlow AI API is running',
+    message: 'BuildOps AI API is running',
     timestamp: new Date().toISOString(),
   });
 });

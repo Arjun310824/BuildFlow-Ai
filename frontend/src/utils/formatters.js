@@ -1,5 +1,5 @@
 /**
- * BuildFlow AI Locale-aware Formatters
+ * BuildOps AI Locale-aware Formatters
  * Formats dates, numbers, and currency matching the active i18n locale without modifying backend/API data formats.
  */
 

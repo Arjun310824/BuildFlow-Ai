@@ -1,5 +1,5 @@
 /**
- * Mock Projects Data for BuildFlow AI - Construction Project Management
+ * Mock Projects Data for BuildOps AI - Construction Project Management
  * Supports full CRUD simulation in frontend state.
  */
 

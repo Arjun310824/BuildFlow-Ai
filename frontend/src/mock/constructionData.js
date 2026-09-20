@@ -1,5 +1,5 @@
 /**
- * BuildFlow AI - Comprehensive Mock Construction Data
+ * BuildOps AI - Comprehensive Mock Construction Data
  * Designed for realistic B2B SaaS project management demonstration.
  */
 

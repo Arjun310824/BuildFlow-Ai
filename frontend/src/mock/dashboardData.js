@@ -1,5 +1,5 @@
 /**
- * Mock Data for BuildFlow AI - Construction Project Management
+ * Mock Data for BuildOps AI - Construction Project Management
  * Used strictly for frontend UI visualization prior to backend integration.
  */
 

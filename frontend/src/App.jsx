@@ -437,7 +437,7 @@ function AppContent() {
       case 'settings':
         return { title: t('settings.title'), subtitle: t('settings.subtitle') };
       default:
-        return { title: 'BuildFlow AI', subtitle: 'Smart Construction Suite' };
+        return { title: 'BuildOps AI', subtitle: 'Smart Construction Suite' };
     }
   };
 

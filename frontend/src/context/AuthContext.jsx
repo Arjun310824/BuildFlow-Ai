@@ -33,8 +33,8 @@ export const AuthProvider = ({ children }) => {
    * @param {Object} credentials - { email, password, name, role }
    */
   const login = useCallback(async (credentials = {}) => {
-    const email = (credentials.email || 'alex.morgan@buildflow.ai').trim();
-    const name = credentials.name || (email === 'alex.morgan@buildflow.ai' ? 'Alex Morgan' : email.split('@')[0]);
+    const email = (credentials.email || 'alex.morgan@buildops.ai').trim();
+    const name = credentials.name || (email.startsWith('alex.morgan@') ? 'Alex Morgan' : email.split('@')[0]);
     const role = credentials.role || 'Project Director';
     const avatar = credentials.avatar || name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'AM';
 

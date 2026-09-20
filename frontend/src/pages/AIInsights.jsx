@@ -650,7 +650,7 @@ export const AIInsights = ({
               <div>
                 <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '1.2rem' }}>💬</span>
-                  <span>Ask BuildFlow AI Assistant (Project-Aware)</span>
+                  <span>Ask BuildOps AI Assistant (Project-Aware)</span>
                 </div>
                 <div className="card-subtitle">
                   Ask specific questions grounded strictly in <strong>{currentProjectName}</strong> database records.

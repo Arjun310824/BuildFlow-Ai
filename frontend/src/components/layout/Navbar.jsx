@@ -4,13 +4,13 @@ import {
   IconSearch,
   IconMenu,
   IconAlerts,
-  IconPlus,
   IconChevronDown,
 } from '../common/Icons';
 
 /**
- * Top Navbar: Professional Construction Intelligence Command Center Top Bar.
- * Global Search (⌘K), Project Context Switcher, ● AI ONLINE status, Notifications, User Profile.
+ * Clean White Top Navbar for BuildOps AI
+ * Matches reference visual design with minimal styling, search, AI online status,
+ * language switcher, notification bell, and user profile avatar.
  */
 export const Navbar = ({
   pageTitle = 'Dashboard',
@@ -22,14 +22,10 @@ export const Navbar = ({
   recentAlerts = [],
   currentUser = null,
   onSignOut,
-  projects = [],
-  selectedProjectId,
-  onSelectProject,
 }) => {
   const { t, i18n } = useTranslation();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
 
   const currentLang = i18n.language || 'en';
@@ -48,71 +44,237 @@ export const Navbar = ({
   };
 
   const userName = currentUser?.name || 'Alex Morgan';
-  const userEmail = currentUser?.email || 'alex@buildflow.ai';
+  const userEmail = currentUser?.email || 'alex@buildops.ai';
   const userAvatar = currentUser?.avatar || 'AM';
 
-  const selectedProjectObj = projects.find(
-    (p) => (p._id || p.id) === selectedProjectId
-  ) || projects[0] || { name: 'All Sites Portfolio' };
-
   return (
-    <header className="top-navbar">
-      <div className="navbar-left">
+    <header className="clean-top-navbar">
+      <style>{`
+        .clean-top-navbar {
+          height: 64px;
+          background: #FFFFFF;
+          border-bottom: 1px solid #E2E8F0;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 32px;
+          position: sticky;
+          top: 0;
+          z-index: 30;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        .clean-nav-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .clean-nav-title {
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: #0F172A;
+          letter-spacing: -0.01em;
+        }
+
+        .clean-nav-badge {
+          font-size: 0.72rem;
+          font-weight: 600;
+          color: #64748B;
+          background: #F1F5F9;
+          padding: 3px 8px;
+          border-radius: 6px;
+          border: 1px solid #E2E8F0;
+        }
+
+        .clean-nav-center {
+          flex: 1;
+          max-width: 440px;
+          margin: 0 24px;
+        }
+
+        .clean-search-box {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #F8FAFC;
+          border: 1px solid #E2E8F0;
+          padding: 7px 14px;
+          border-radius: 8px;
+          transition: all 0.18s ease;
+          width: 100%;
+        }
+
+        .clean-search-box:focus-within {
+          background: #FFFFFF;
+          border-color: #1677D2;
+          box-shadow: 0 0 0 3px rgba(22, 119, 210, 0.1);
+        }
+
+        .clean-search-box input {
+          border: none;
+          background: transparent;
+          outline: none;
+          width: 100%;
+          font-size: 0.88rem;
+          color: #0F172A;
+        }
+
+        .clean-search-box input::placeholder {
+          color: #94A3B8;
+        }
+
+        .clean-search-shortcut {
+          font-size: 0.68rem;
+          color: #64748B;
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
+          padding: 1px 6px;
+          border-radius: 4px;
+          font-weight: 600;
+          flex-shrink: 0;
+        }
+
+        .clean-nav-right {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .clean-ai-status {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #16A34A;
+          background: #F0FDF4;
+          border: 1px solid #DCFCE7;
+          padding: 4px 10px;
+          border-radius: 20px;
+        }
+
+        .clean-ai-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #16A34A;
+        }
+
+        .clean-action-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #64748B;
+          border: 1px solid #E2E8F0;
+          background: #FFFFFF;
+          position: relative;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .clean-action-btn:hover {
+          background: #F8FAFC;
+          color: #0F172A;
+          border-color: #CBD5E1;
+        }
+
+        .clean-notif-badge {
+          position: absolute;
+          top: -3px;
+          right: -3px;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: #EF4444;
+          color: #FFFFFF;
+          font-size: 0.65rem;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid #FFFFFF;
+        }
+
+        .clean-avatar-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 2px;
+        }
+
+        .clean-avatar-circle {
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          background: #DBEAFE;
+          color: #1677D2;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.82rem;
+        }
+
+        .clean-dropdown-menu {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          width: 220px;
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
+          border-radius: 10px;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+          padding: 8px;
+          z-index: 100;
+        }
+
+        .clean-dropdown-item {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          font-size: 0.84rem;
+          color: #0F172A;
+          border-radius: 6px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          text-align: left;
+          transition: background 0.15s ease;
+        }
+
+        .clean-dropdown-item:hover {
+          background: #F8FAFC;
+        }
+      `}</style>
+
+      {/* Left: Title + Badge */}
+      <div className="clean-nav-left">
         <button
-          className="nav-icon-action-btn"
+          className="clean-action-btn"
           onClick={onToggleMobileSidebar}
           aria-label="Toggle navigation menu"
-          id="mobile-nav-btn"
           style={{ display: 'none' }}
         >
           <IconMenu />
         </button>
 
-        <div className="page-title-crumb">
-          <span className="page-title-main">{pageTitle}</span>
-          {pageSubtitle && (
-            <span className="page-title-badge">{pageSubtitle}</span>
-          )}
-        </div>
-
-        {/* Current Project Context Selector Dropdown */}
-        {projects.length > 0 && (
-          <div style={{ marginLeft: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-              SITE:
-            </span>
-            <select
-              className="filter-select"
-              value={selectedProjectId || ''}
-              onChange={(e) => onSelectProject && onSelectProject(e.target.value)}
-              style={{
-                fontSize: '0.8rem',
-                padding: '4px 10px',
-                height: '32px',
-                maxWidth: '220px',
-                background: 'var(--bg-input)',
-                borderColor: 'var(--border-color)',
-                color: '#FFFFFF',
-              }}
-              title="Switch Active Project Context"
-            >
-              {projects.map((p) => {
-                const id = p._id || p.id;
-                return (
-                  <option key={id} value={id}>
-                    {p.name}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-        )}
+        <span className="clean-nav-title">{pageTitle || 'Dashboard'}</span>
+        <span className="clean-nav-badge">Smart Construction Suite</span>
       </div>
 
-      <div className="navbar-right">
-        {/* Global Search */}
-        <div className="search-bar-box">
-          <span style={{ color: 'var(--text-muted)', display: 'flex' }}>
+      {/* Center: Search Box */}
+      <div className="clean-nav-center">
+        <div className="clean-search-box">
+          <span style={{ color: '#94A3B8', display: 'flex' }}>
             <IconSearch size={16} />
           </span>
           <input
@@ -121,28 +283,25 @@ export const Navbar = ({
             value={searchQuery || ''}
             onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
           />
-          <span className="search-shortcut">⌘K</span>
+          <span className="clean-search-shortcut">Ctrl K</span>
+        </div>
+      </div>
+
+      {/* Right: AI Online, Language, Notification Bell, User Avatar */}
+      <div className="clean-nav-right">
+        {/* AI Status */}
+        <div className="clean-ai-status" title="Gemini AI Engine Online">
+          <span className="clean-ai-dot" />
+          <span>● AI Online</span>
         </div>
 
-        {/* AI Status Indicator */}
-        <div className="ai-status-pill" title="Gemini AI Intelligence Engine is connected and monitoring live telemetry">
-          <span className="ai-pulse-dot" />
-          <span>● AI ONLINE</span>
-        </div>
-
-        {/* Global Language Selector */}
+        {/* Language Selector */}
         <div style={{ position: 'relative' }}>
           <button
-            className="btn btn-secondary btn-sm"
+            type="button"
+            className="clean-action-btn"
+            style={{ width: 'auto', padding: '0 10px', gap: '6px', fontSize: '0.82rem', fontWeight: 600 }}
             onClick={() => setShowLangMenu((prev) => !prev)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              padding: '6px 10px',
-            }}
             title="Switch Language"
           >
             <span>{activeLangObj.flag}</span>
@@ -151,40 +310,19 @@ export const Navbar = ({
           </button>
 
           {showLangMenu && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '110%',
-                right: 0,
-                width: '160px',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-dropdown)',
-                padding: '6px',
-                zIndex: 100,
-              }}
-            >
+            <div className="clean-dropdown-menu" style={{ width: '150px' }}>
               {languages.map((lang) => (
                 <button
                   key={lang.code}
-                  className={`nav-btn ${currentLang === lang.code ? 'active' : ''}`}
-                  style={{
-                    fontSize: '0.82rem',
-                    padding: '8px 10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    width: '100%',
-                    justifyContent: 'flex-start',
-                    fontWeight: currentLang === lang.code ? 700 : 500,
-                  }}
+                  type="button"
+                  className="clean-dropdown-item"
+                  style={{ fontWeight: currentLang === lang.code ? 700 : 500 }}
                   onClick={() => handleLanguageSelect(lang.code)}
                 >
                   <span>{lang.flag}</span>
                   <span>{lang.label}</span>
                   {currentLang === lang.code && (
-                    <span style={{ marginLeft: 'auto', color: 'var(--accent-cyan)' }}>✓</span>
+                    <span style={{ marginLeft: 'auto', color: '#1677D2' }}>✓</span>
                   )}
                 </button>
               ))}
@@ -192,191 +330,111 @@ export const Navbar = ({
           )}
         </div>
 
-        {/* Quick Add Button */}
+        {/* Notification Bell */}
         <div style={{ position: 'relative' }}>
           <button
-            className="btn-quick-create"
-            onClick={() => setShowQuickAdd((prev) => !prev)}
-          >
-            <IconPlus size={15} />
-            <span>New</span>
-            <IconChevronDown size={13} />
-          </button>
-
-          {showQuickAdd && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '110%',
-                right: 0,
-                width: '180px',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-dropdown)',
-                padding: '6px',
-                zIndex: 100,
-              }}
-            >
-              <button
-                className="nav-btn"
-                style={{ fontSize: '0.82rem', padding: '8px 12px' }}
-                onClick={() => {
-                  setShowQuickAdd(false);
-                  onNavigate && onNavigate('add-project');
-                }}
-              >
-                + New Project
-              </button>
-              <button
-                className="nav-btn"
-                style={{ fontSize: '0.82rem', padding: '8px 12px' }}
-                onClick={() => {
-                  setShowQuickAdd(false);
-                  onNavigate && onNavigate('add-task');
-                }}
-              >
-                + Assign Task
-              </button>
-              <button
-                className="nav-btn"
-                style={{ fontSize: '0.82rem', padding: '8px 12px' }}
-                onClick={() => {
-                  setShowQuickAdd(false);
-                  onNavigate && onNavigate('materials');
-                }}
-              >
-                + Log Material
-              </button>
-              <button
-                className="nav-btn"
-                style={{ fontSize: '0.82rem', padding: '8px 12px' }}
-                onClick={() => {
-                  setShowQuickAdd(false);
-                  onNavigate && onNavigate('site-updates');
-                }}
-              >
-                + Daily Site Log
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Notifications Icon with Unread Dot */}
-        <div style={{ position: 'relative' }}>
-          <button
-            className="nav-icon-action-btn"
+            type="button"
+            className="clean-action-btn"
             onClick={() => setShowNotifications((prev) => !prev)}
             aria-label="View notifications"
           >
             <IconAlerts size={17} />
-            {recentAlerts.length > 0 && <span className="nav-notification-dot" />}
+            <span className="clean-notif-badge">4</span>
           </button>
 
           {showNotifications && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '110%',
-                right: 0,
-                width: '320px',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--shadow-dropdown)',
-                padding: '14px',
-                zIndex: 100,
-              }}
-            >
+            <div className="clean-dropdown-menu" style={{ width: '300px' }}>
               <div
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  marginBottom: '10px',
-                  paddingBottom: '8px',
-                  borderBottom: '1px solid var(--border-color)',
+                  padding: '8px 10px',
+                  borderBottom: '1px solid #E2E8F0',
+                  marginBottom: '6px',
                 }}
               >
-                <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#FFFFFF' }}>Action Items</span>
-                <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', cursor: 'pointer' }} onClick={() => { setShowNotifications(false); onNavigate('alerts'); }}>
+                <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0F172A' }}>Notifications</span>
+                <span
+                  style={{ fontSize: '0.74rem', color: '#1677D2', cursor: 'pointer', fontWeight: 600 }}
+                  onClick={() => {
+                    setShowNotifications(false);
+                    onNavigate && onNavigate('alerts');
+                  }}
+                >
                   View All &rarr;
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
-                {recentAlerts.slice(0, 3).map((a) => (
-                  <div
-                    key={a.id}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'var(--bg-surface-elevated)',
-                      borderLeft: a.type === 'Critical' ? '3px solid #EF4444' : '3px solid #F59E0B',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => {
-                      setShowNotifications(false);
-                      onNavigate && onNavigate('alerts');
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#FFFFFF' }}>{a.title}</div>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>{a.message}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    background: '#FEF2F2',
+                    borderLeft: '3px solid #EF4444',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    setShowNotifications(false);
+                    onNavigate && onNavigate('alerts');
+                  }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#0F172A' }}>
+                    Critical trade delay detected
                   </div>
-                ))}
+                  <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>
+                    Electrical Substation Conduit is 6 days late
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    background: '#FFFBEB',
+                    borderLeft: '3px solid #F59E0B',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    setShowNotifications(false);
+                    onNavigate && onNavigate('materials');
+                  }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#0F172A' }}>
+                    Low stock threshold alert
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>
+                    Portland Cement stock below minimum required
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* User Profile Trigger & Dropdown */}
+        {/* Profile Avatar & Dropdown */}
         <div style={{ position: 'relative' }}>
           <button
-            className="navbar-user-trigger"
+            type="button"
+            className="clean-avatar-btn"
             onClick={() => setShowProfileMenu((prev) => !prev)}
             aria-label="User account menu"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '4px 8px',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
-              background: 'var(--bg-surface)',
-            }}
           >
-            <div className="user-avatar-circle" style={{ width: '28px', height: '28px', fontSize: '0.74rem' }}>
-              {userAvatar}
-            </div>
-            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#FFFFFF' }}>
-              {userName}
-            </span>
-            <IconChevronDown size={12} color="var(--text-muted)" />
+            <div className="clean-avatar-circle">{userAvatar}</div>
+            <IconChevronDown size={13} color="#64748B" />
           </button>
 
           {showProfileMenu && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '110%',
-                right: 0,
-                width: '210px',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--shadow-dropdown)',
-                padding: '8px',
-                zIndex: 100,
-              }}
-            >
-              <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-color)', marginBottom: '6px' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#FFFFFF' }}>{userName}</div>
-                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{userEmail}</div>
+            <div className="clean-dropdown-menu">
+              <div style={{ padding: '8px 10px', borderBottom: '1px solid #E2E8F0', marginBottom: '6px' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#0F172A' }}>{userName}</div>
+                <div style={{ fontSize: '0.74rem', color: '#64748B' }}>{userEmail}</div>
               </div>
 
               <button
-                className="nav-btn"
-                style={{ fontSize: '0.82rem', padding: '8px 10px' }}
+                type="button"
+                className="clean-dropdown-item"
                 onClick={() => {
                   setShowProfileMenu(false);
                   onNavigate && onNavigate('settings');
@@ -386,8 +444,9 @@ export const Navbar = ({
               </button>
 
               <button
-                className="nav-btn"
-                style={{ fontSize: '0.82rem', padding: '8px 10px', color: '#F87171' }}
+                type="button"
+                className="clean-dropdown-item"
+                style={{ color: '#EF4444' }}
                 onClick={() => {
                   setShowProfileMenu(false);
                   if (onSignOut) onSignOut();

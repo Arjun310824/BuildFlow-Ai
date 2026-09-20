@@ -274,3 +274,20 @@ export const IconRefresh = ({ size = 16, color = 'currentColor', className = '' 
   </svg>
 );
 
+export const IconMoreHorizontal = ({ size = 18, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="1.5" fill={color} />
+    <circle cx="19" cy="12" r="1.5" fill={color} />
+    <circle cx="5" cy="12" r="1.5" fill={color} />
+  </svg>
+);
+
+export const IconMoreVertical = ({ size = 18, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="1.5" fill={color} />
+    <circle cx="12" cy="5" r="1.5" fill={color} />
+    <circle cx="12" cy="19" r="1.5" fill={color} />
+  </svg>
+);
+
+

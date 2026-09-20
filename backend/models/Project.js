@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 /**
- * Project Schema for BuildFlow AI Smart Construction Data Management
+ * Project Schema for BuildOps AI Smart Construction Data Management
  */
 const projectSchema = new mongoose.Schema(
   {

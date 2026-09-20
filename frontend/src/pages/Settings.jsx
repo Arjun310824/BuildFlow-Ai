@@ -9,14 +9,14 @@ export const Settings = ({ onSaveFeedback }) => {
   const [profile, setProfile] = useState({
     name: 'Alex Morgan',
     role: 'Project Manager',
-    email: 'alex.morgan@buildflow.ai',
+    email: 'alex.morgan@buildops.ai',
     phone: '+1 (555) 019-2834',
     department: 'Commercial & High-Rise Operations',
   });
 
   // Company State
   const [company, setCompany] = useState({
-    name: 'BuildFlow Construction Group Inc.',
+    name: 'BuildOps Construction Group Inc.',
     licenseNumber: 'GC-99482-A',
     taxId: 'XX-XXX4920',
     headquarters: '100 Enterprise Way, Suite 400, Chicago, IL',

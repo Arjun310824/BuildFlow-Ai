@@ -172,7 +172,7 @@
     "riskLevel": "Risk Level",
     "targetMet": "Target Met",
     "formTitle": "Add Construction Project",
-    "formSubtitle": "Initialize a new project site record in BuildFlow AI",
+    "formSubtitle": "Initialize a new project site record in BuildOps AI",
     "progressLabel": "Initial Progress (%):",
     "createProjectBtn": "Create Project",
     "nameRequired": "Project name is required",

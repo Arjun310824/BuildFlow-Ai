@@ -1,9 +1,9 @@
-# 🏗️ BuildFlow AI
+# 🏗️ BuildOps AI
 
-> Smart Construction Data Management & AI-Powered Project Intelligence Platform  
+> AI-Powered Construction Operations Platform  
 > **Hackathon Task 07** — End-to-end technology solution for managing, organizing, and utilizing construction and real-estate data.
 
-BuildFlow AI is a smart construction project management platform designed to centralize project information, improve progress tracking, monitor resources, identify project risks, and support better decision-making.
+BuildOps AI is an AI-powered construction operations platform designed to centralize project data, track construction activities, monitor materials, analyze project risks, and support better decision-making.
 
 The platform brings critical construction information such as projects, tasks, materials, progress, reports, and AI-generated insights into one unified system.
 
@@ -37,7 +37,7 @@ In many organizations, this information is scattered across spreadsheets, docume
 
 ## 💡 Our Solution
 
-BuildFlow AI provides a centralized platform where construction project managers can manage, track, and analyze project information from a single dashboard.
+BuildOps AI provides a centralized platform where construction project managers can manage, track, and analyze project information from a single dashboard.
 
 The platform combines:
 
@@ -105,7 +105,7 @@ Powered by **Google Gemini API** to analyze construction project data and surfac
 ## 📂 Repository Structure
 
 ```
-BuildFlowAI/
+BuildOpsAI/
 ├── .gitignore              # Global git ignore (node_modules, .env, dist)
 ├── README.md               # Project documentation and developer setup
 │

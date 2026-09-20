@@ -43,7 +43,7 @@ app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 [BuildFlow AI] Backend server running on port ${PORT}`);
+  console.log(`🚀 [BuildOps AI] Backend server running on port ${PORT}`);
   console.log(`🩺 Health check available at: http://localhost:${PORT}/api/health`);
   console.log(`📁 Projects API available at: http://localhost:${PORT}/api/projects`);
   console.log(`📋 Tasks API available at: http://localhost:${PORT}/api/tasks`);

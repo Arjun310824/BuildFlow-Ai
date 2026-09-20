@@ -6,7 +6,7 @@ import { IconEye } from '../components/common/Icons';
 export const Login = ({ onLoginSuccess }) => {
   const { t, i18n } = useTranslation();
 
-  const [email, setEmail] = useState('alex.morgan@buildflow.ai');
+  const [email, setEmail] = useState('alex.morgan@buildops.ai');
   const [password, setPassword] = useState('••••••••');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -65,7 +65,7 @@ export const Login = ({ onLoginSuccess }) => {
     try {
       if (onLoginSuccess) {
         await onLoginSuccess({
-          email: 'alex.morgan@buildflow.ai',
+          email: 'alex.morgan@buildops.ai',
           name: 'Alex Morgan',
           role: 'Project Director',
           avatar: 'AM',
@@ -715,10 +715,10 @@ export const Login = ({ onLoginSuccess }) => {
           <BuildFlowLogo size={46} />
           <div>
             <div className="login-brand-title">
-              BuildFlow <span style={{ color: '#1677D2' }}>A</span><span style={{ color: '#FF6A00' }}>I</span>
+              BuildOps <span style={{ color: '#1677D2' }}>A</span><span style={{ color: '#FF6A00' }}>I</span>
             </div>
             <div className="login-brand-tagline">
-              BUILD SMARTER. TOGETHER.
+              AI-POWERED CONSTRUCTION OPERATIONS
             </div>
           </div>
         </div>
@@ -746,7 +746,7 @@ export const Login = ({ onLoginSuccess }) => {
         <section className="login-left-panel">
           <div className="login-welcome-tag">WELCOME TO</div>
           <h1 className="login-hero-heading">
-            BuildFlow <span style={{ color: '#1677D2' }}>AI</span>
+            BuildOps <span style={{ color: '#1677D2' }}>AI</span>
           </h1>
           <p className="login-hero-description">
             Your Construction Intelligence<br />
@@ -862,10 +862,10 @@ export const Login = ({ onLoginSuccess }) => {
                 <BuildFlowLogo size={52} />
               </div>
               <h2 className="login-card-title">
-                BuildFlow <span style={{ color: '#FF6A00' }}>AI</span>
+                BuildOps <span style={{ color: '#FF6A00' }}>AI</span>
               </h2>
               <p className="login-card-subtitle">
-                Enterprise Construction Intelligence Suite
+                AI-Powered Construction Operations
               </p>
             </div>
 
@@ -915,7 +915,7 @@ export const Login = ({ onLoginSuccess }) => {
                       setEmail(e.target.value);
                       if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
                     }}
-                    placeholder="alex.morgan@buildflow.ai"
+                    placeholder="alex.morgan@buildops.ai"
                     className={`login-input-box ${errors.email ? 'error' : ''}`}
                     disabled={isLoading}
                     autoComplete="email"
@@ -1021,7 +1021,7 @@ export const Login = ({ onLoginSuccess }) => {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
-              <span>BuildFlow AI Smart Construction Suite • Protected Enterprise System</span>
+              <span>BuildOps AI Smart Construction Suite • Protected Enterprise System</span>
             </div>
           </div>
         </section>
@@ -1042,20 +1042,19 @@ export const Login = ({ onLoginSuccess }) => {
                   cy="35"
                   r="28"
                   fill="transparent"
-                  stroke="rgba(255, 255, 255, 0.14)"
-                  strokeWidth="6"
+                  stroke="rgba(255, 255, 255, 0.15)"
+                  strokeWidth="5"
                 />
                 <circle
                   cx="35"
                   cy="35"
                   r="28"
                   fill="transparent"
-                  stroke="#00D9FF"
-                  strokeWidth="6"
+                  stroke="#FF6A00"
+                  strokeWidth="5"
                   strokeDasharray="175.9"
-                  strokeDashoffset="56.3"
+                  strokeDashoffset="56.2"
                   strokeLinecap="round"
-                  style={{ filter: 'drop-shadow(0 0 6px rgba(0, 217, 255, 0.7))' }}
                 />
               </svg>
               <div
@@ -1065,30 +1064,21 @@ export const Login = ({ onLoginSuccess }) => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: '0.96rem',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
                   color: '#FFFFFF',
-                  fontFamily: 'monospace',
                 }}
               >
                 68%
               </div>
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '0.72rem', color: '#38BDF8', fontWeight: 700 }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00D9FF', boxShadow: '0 0 6px #00D9FF' }} />
-              <span>On Track</span>
+            <div style={{ fontSize: '0.72rem', color: '#FFFFFF', fontWeight: 600, textAlign: 'center' }}>
+              Structural Steel Phase
             </div>
           </div>
 
-          {/* Floating Card 2: AI Insights */}
+          {/* Floating Card 2: AI Telemetry Analysis */}
           <div className="login-hud-card hud-card-insights">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#94A3B8', fontWeight: 600, marginBottom: '6px' }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00D9FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-              </svg>
-              <span>AI Insights</span>
-            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF6A00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -1163,7 +1153,7 @@ export const Login = ({ onLoginSuccess }) => {
               </h3>
             </div>
             <p style={{ fontSize: '0.88rem', color: '#64748B', lineHeight: '1.5', marginBottom: '20px' }}>
-              For enterprise security, password resets are handled via your organization's BuildFlow AI administrator or SSO directory. Please contact your site superintendent or IT helpdesk.
+              For enterprise security, password resets are handled via your organization's BuildOps AI administrator or SSO directory. Please contact your site superintendent or IT helpdesk.
             </p>
             <button
               type="button"

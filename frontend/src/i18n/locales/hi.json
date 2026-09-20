@@ -172,7 +172,7 @@
     "riskLevel": "जोखिम स्तर",
     "targetMet": "लक्ष्य पूर्ण",
     "formTitle": "निर्माण परियोजना जोड़ें",
-    "formSubtitle": "BuildFlow AI में नया प्रोजेक्ट साइट रिकॉर्ड दर्ज करें",
+    "formSubtitle": "BuildOps AI में नया प्रोजेक्ट साइट रिकॉर्ड दर्ज करें",
     "progressLabel": "प्रारंभिक प्रगति (%):",
     "createProjectBtn": "परियोजना बनाएं",
     "nameRequired": "परियोजना का नाम अनिवार्य है",

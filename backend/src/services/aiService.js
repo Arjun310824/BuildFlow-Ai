@@ -195,7 +195,7 @@ export const getGeminiClient = () => {
 /**
  * System prompt instructing Gemini to analyze the 3 MVP features and return structured JSON.
  */
-const SYSTEM_INSTRUCTION = `You are an expert construction project intelligence and risk analysis AI for the BuildFlow AI platform.
+const SYSTEM_INSTRUCTION = `You are an expert construction project intelligence and risk analysis AI for the BuildOps AI platform.
 Analyze the provided construction project, tasks, and materials data for a construction project manager.
 
 Cover ONLY these 3 core analytical features:

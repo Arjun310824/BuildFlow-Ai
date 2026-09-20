@@ -1,13 +1,13 @@
 import { GoogleGenAI } from '@google/genai';
 
 /**
- * BuildFlow AI - Domain-Specific Gemini AI Service
+ * BuildOps AI - Domain-Specific Gemini AI Service
  * Grounded strictly in real-time MongoDB construction data.
  */
 
-const SYSTEM_INSTRUCTION = `You are the BuildFlow AI Construction Intelligence Engine.
+const SYSTEM_INSTRUCTION = `You are the BuildOps AI Construction Intelligence Engine.
 
-Your role is to analyze real-world construction project data provided strictly by the BuildFlow AI platform.
+Your role is to analyze real-world construction project data provided strictly by the BuildOps AI platform.
 You are not a generic chatbot.
 
 Your analysis must be grounded strictly and factually in the project data provided to you.
@@ -154,7 +154,7 @@ export const callGemini = async (prompt, systemInstruction = SYSTEM_INSTRUCTION,
  * @returns {Promise<Object>}
  */
 export const generateProjectAnalysis = async (context) => {
-  const prompt = `Analyze the following real construction project data from BuildFlow AI database and output the required structured JSON:
+  const prompt = `Analyze the following real construction project data from BuildOps AI database and output the required structured JSON:
 
 PROJECT DATA CONTEXT:
 ${JSON.stringify(context, null, 2)}
@@ -186,7 +186,7 @@ Ensure all conclusions are supported strictly by this data. If no tasks or mater
  * @returns {Promise<string>}
  */
 export const generateProjectChatResponse = async (context, userQuestion) => {
-  const chatSystemInstruction = `You are BuildFlow AI Project Assistant.
+  const chatSystemInstruction = `You are BuildOps AI Project Assistant.
 You answer user questions about a specific construction project strictly using the provided database facts.
 Never invent facts, metrics, contractors, or dates.
 If the data does not contain the answer, say: "Insufficient project data to determine this."
@@ -398,7 +398,7 @@ export const getGeminiClient = () => {
 /**
  * System prompt instructing Gemini to analyze the 3 MVP features and return structured JSON.
  */
-const MVP_SYSTEM_INSTRUCTION = `You are an expert construction project intelligence and risk analysis AI for the BuildFlow AI platform.
+const MVP_SYSTEM_INSTRUCTION = `You are an expert construction project intelligence and risk analysis AI for the BuildOps AI platform.
 Analyze the provided construction project, tasks, and materials data for a construction project manager.
 
 Cover ONLY these 3 core analytical features:
