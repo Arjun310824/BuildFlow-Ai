@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { aiInsightProfiles } from '../mock/constructionData';
+import { getProjectAIInsights } from '../services/api';
 import {
   IconInsights,
   IconSparkles,
@@ -20,23 +21,59 @@ export const AIInsights = ({
   const [activeProjectId, setActiveProjectId] = useState(selectedProjectId || 'PRJ-101');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisTimestamp, setAnalysisTimestamp] = useState('Today at 11:45 AM');
+  const [liveData, setLiveData] = useState(null);
+  const [apiNotice, setApiNotice] = useState(null);
 
-  const currentProfile =
+  const fallbackProfile =
     aiInsightProfiles[activeProjectId] ||
     aiInsightProfiles['PRJ-101'];
 
-  const handleAnalyze = () => {
+  // Fetch real Gemini AI insights from backend
+  const fetchGeminiAnalysis = async (projectId) => {
     setIsAnalyzing(true);
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      setAnalysisTimestamp('Just now (Live Gemini 1.5 Pro inference)');
-      if (onTriggerAction) {
-        onTriggerAction('AI Analysis Completed: Risk indicators and critical path recalculated.');
+    setApiNotice(null);
+    try {
+      const response = await getProjectAIInsights(projectId);
+      if (response && response.success && response.data) {
+        setLiveData(response.data);
+        setAnalysisTimestamp(`Just now (Live Gemini 3.6 inference)`);
+        if (onTriggerAction) {
+          onTriggerAction(`Live Gemini AI analysis refreshed for ${projectId}.`);
+        }
+      } else {
+        throw new Error(response.message || 'Invalid response from AI service');
       }
-    }, 900);
+    } catch (err) {
+      console.warn('[AI Insights] Using fallback profile:', err.message);
+      setApiNotice(err.message);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  const isHighRisk = currentProfile.overallScore < 75;
+  useEffect(() => {
+    if (activeProjectId) {
+      fetchGeminiAnalysis(activeProjectId);
+    }
+  }, [activeProjectId]);
+
+  const handleAnalyze = () => {
+    fetchGeminiAnalysis(activeProjectId);
+  };
+
+  // Derive effective profile blending live Gemini data with fallback structure
+  const currentProjectName = projects.find(p => p.id === activeProjectId)?.name || fallbackProfile.projectName;
+
+  const effectiveRiskLevel = liveData ? liveData.riskLevel : (fallbackProfile.overallScore < 75 ? 'HIGH' : 'LOW');
+  const effectiveRiskScore = liveData ? liveData.riskScore : (100 - fallbackProfile.overallScore);
+  const effectiveHealthStatus = effectiveRiskLevel === 'HIGH' ? 'Immediate Attention' : effectiveRiskLevel === 'MEDIUM' ? 'Moderate Risk' : 'On Track';
+  const isHighRisk = effectiveRiskLevel === 'HIGH';
+
+  const effectiveRecommendations = (liveData && liveData.recommendedActions && liveData.recommendedActions.length > 0)
+    ? liveData.recommendedActions
+    : fallbackProfile.recommendations;
+
+  const effectiveSummary = liveData ? liveData.summary : (fallbackProfile.keyInsights[0]?.detail || 'Project telemetry evaluated.');
 
   return (
     <div className="page-container">
@@ -60,10 +97,10 @@ export const AIInsights = ({
               }}
             >
               <IconSparkles size={12} />
-              GEMINI POWERED
+              {liveData ? 'LIVE GEMINI 3.6 PRO' : 'GEMINI POWERED'}
             </span>
           </div>
-          <p>AI-powered analysis of your construction projects.</p>
+          <p>Real-time predictive analytics, critical path bottleneck forecasting, and material deficit mitigation.</p>
         </div>
 
         {/* Top Controls: Select Project dropdown + Analyze Project Button */}
@@ -78,11 +115,20 @@ export const AIInsights = ({
               }}
               style={{ minWidth: '220px', fontWeight: 600 }}
             >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.code})
-                </option>
-              ))}
+              {projects.length > 0 ? (
+                projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.code || p.id})
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="PRJ-101">Skyline Commercial Tower B (PRJ-101)</option>
+                  <option value="PRJ-102">Riverfront Residential Phase II (PRJ-102)</option>
+                  <option value="PRJ-103">Apex Logistics Distribution Hub (PRJ-103)</option>
+                  <option value="PRJ-104">Metro Hospital Expansion Wing (PRJ-104)</option>
+                </>
+              )}
             </select>
 
             <button
@@ -91,7 +137,7 @@ export const AIInsights = ({
               disabled={isAnalyzing}
             >
               <IconSparkles size={16} />
-              <span>{isAnalyzing ? 'Analyzing Site Data...' : 'Analyze Project'}</span>
+              <span>{isAnalyzing ? 'Analyzing Site Telemetry...' : 'Analyze Project'}</span>
             </button>
           </div>
         </div>
@@ -122,10 +168,10 @@ export const AIInsights = ({
           <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
           <div>
             <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)', marginBottom: '4px' }}>
-              Synthesizing Construction Telemetry
+              Synthesizing Construction Telemetry with Gemini AI
             </div>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Evaluating critical path dependencies, material procurement thresholds, and meteorological forecasts...
+              Evaluating critical path milestones, trade dependencies, and supply chain buffer thresholds for {currentProjectName}...
             </div>
           </div>
         </div>
@@ -142,7 +188,7 @@ export const AIInsights = ({
               overflow: 'hidden',
             }}
           >
-            {/* Subtle accent bar at top */}
+            {/* Accent bar at top */}
             <div
               style={{
                 position: 'absolute',
@@ -166,7 +212,7 @@ export const AIInsights = ({
             >
               <div>
                 <div style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                  PROJECT HEALTH
+                  PROJECT RISK ASSESSMENT
                 </div>
                 <div
                   style={{
@@ -179,20 +225,20 @@ export const AIInsights = ({
                     gap: '10px',
                   }}
                 >
-                  <span>{currentProfile.healthStatus}</span>
+                  <span>{effectiveHealthStatus}</span>
                   <span
                     className={`badge ${isHighRisk ? 'badge-delayed' : 'badge-on-track'}`}
                     style={{ fontSize: '0.8rem' }}
                   >
-                    {isHighRisk ? 'Immediate Attention' : 'On Track'}
+                    Risk Level: {effectiveRiskLevel}
                   </span>
                 </div>
                 <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Analyzed for {currentProfile.projectName} • Last updated: {analysisTimestamp}
+                  Analyzed for <strong>{currentProjectName}</strong> • {analysisTimestamp}
                 </div>
               </div>
 
-              {/* Overall Score Dial */}
+              {/* Overall Risk Score Dial */}
               <div
                 style={{
                   display: 'flex',
@@ -206,10 +252,10 @@ export const AIInsights = ({
               >
                 <div>
                   <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                    Overall Score:
+                    Calculated Risk Score:
                   </div>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1 }}>
-                    {currentProfile.overallScore}<span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>/100</span>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 800, color: isHighRisk ? 'var(--color-danger)' : 'var(--color-success)', lineHeight: 1.1 }}>
+                    {effectiveRiskScore}<span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>/100</span>
                   </div>
                 </div>
                 <div
@@ -227,83 +273,116 @@ export const AIInsights = ({
                     fontSize: '1rem',
                   }}
                 >
-                  {currentProfile.overallScore}%
+                  {effectiveRiskScore}%
                 </div>
               </div>
+            </div>
+
+            {/* AI Executive Summary Banner */}
+            <div
+              style={{
+                marginTop: '16px',
+                padding: '14px 16px',
+                background: 'rgba(0, 102, 255, 0.04)',
+                border: '1px solid rgba(0, 102, 255, 0.15)',
+                borderRadius: 'var(--radius-md)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-accent)' }}>
+                <IconSparkles size={14} />
+                <span>EXECUTIVE GEMINI SUMMARY</span>
+              </div>
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-main)', lineHeight: 1.6, margin: 0 }}>
+                {effectiveSummary}
+              </p>
             </div>
           </div>
 
           {/* 3 Core Risk Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px' }}>
-            {/* 1. Schedule Risk */}
+            {/* 1. Schedule / Delay Risk */}
             <div
               className="card"
               style={{
-                borderLeft: '4px solid var(--color-warning)',
+                borderLeft: `4px solid ${liveData?.delays?.length > 0 ? 'var(--color-danger)' : 'var(--color-success)'}`,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <span style={{ fontSize: '1.1rem' }}>⚠️</span>
+                <span style={{ fontSize: '1.1rem' }}>⏱️</span>
                 <span style={{ fontWeight: 700, fontSize: '0.98rem', color: 'var(--text-main)' }}>
-                  Schedule Risk
+                  Task Delays
                 </span>
               </div>
-              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-warning-text)', marginBottom: '8px' }}>
-                Project is {currentProfile.scheduleRisk.percentage}.
+              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: liveData?.delays?.length > 0 ? 'var(--color-danger-text)' : 'var(--color-success-text)', marginBottom: '8px' }}>
+                {liveData
+                  ? (liveData.delays.length > 0 ? `${liveData.delays.length} task(s) behind schedule` : 'No task delays detected')
+                  : `Project is ${fallbackProfile.scheduleRisk.percentage}.`}
               </div>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.45' }}>
-                {currentProfile.scheduleRisk.summary}
+                {liveData && liveData.delays.length > 0
+                  ? `${liveData.delays[0].task}: ${liveData.delays[0].reason}`
+                  : (liveData ? 'All milestones are currently progressing on schedule.' : fallbackProfile.scheduleRisk.summary)}
               </p>
               <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-light)', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                Impact: <strong>{currentProfile.scheduleRisk.criticalPathImpact}</strong>
+                {liveData && liveData.delays.length > 0
+                  ? <span>Max Overrun: <strong style={{ color: 'var(--color-danger)' }}>+{liveData.delays[0].delayDays} days</strong></span>
+                  : <span>Critical Path: <strong>Nominal</strong></span>}
               </div>
             </div>
 
-            {/* 2. Material Risk */}
+            {/* 2. Material Deficits */}
             <div
               className="card"
               style={{
-                borderLeft: '4px solid var(--color-danger)',
+                borderLeft: `4px solid ${liveData?.materialShortages?.length > 0 ? 'var(--color-danger)' : 'var(--color-success)'}`,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                 <span style={{ fontSize: '1.1rem' }}>📦</span>
                 <span style={{ fontWeight: 700, fontSize: '0.98rem', color: 'var(--text-main)' }}>
-                  Material Risk
+                  Material Deficits
                 </span>
               </div>
-              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-danger-text)', marginBottom: '8px' }}>
-                Cement and steel inventory are below expected levels.
+              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: liveData?.materialShortages?.length > 0 ? 'var(--color-danger-text)' : 'var(--color-success-text)', marginBottom: '8px' }}>
+                {liveData
+                  ? (liveData.materialShortages.length > 0 ? `${liveData.materialShortages.length} shortage alert(s)` : 'Supply buffers adequate')
+                  : 'Cement and steel inventory are below expected levels.'}
               </div>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.45' }}>
-                {currentProfile.materialRisk.summary}
+                {liveData && liveData.materialShortages.length > 0
+                  ? `${liveData.materialShortages[0].material} deficit of ${liveData.materialShortages[0].shortage} ${liveData.materialShortages[0].unit} (Avail: ${liveData.materialShortages[0].available} / Req: ${liveData.materialShortages[0].required}).`
+                  : (liveData ? 'On-site stockpiles meet active production rates.' : fallbackProfile.materialRisk.summary)}
               </p>
               <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-light)', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                Shortage Risk: <strong>Projected halt in 2.5 shifts</strong>
+                {liveData && liveData.materialShortages.length > 0
+                  ? <span>Action: <strong style={{ color: 'var(--color-danger)' }}>Expedite Reorder</strong></span>
+                  : <span>Shortage Risk: <strong>None</strong></span>}
               </div>
             </div>
 
-            {/* 3. Task Risk */}
+            {/* 3. Operational Issues */}
             <div
               className="card"
               style={{
-                borderLeft: '4px solid var(--color-danger)',
+                borderLeft: `4px solid ${liveData?.issues?.length > 0 ? 'var(--color-danger)' : 'var(--color-success)'}`,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <span style={{ fontSize: '1.1rem' }}>🔴</span>
+                <span style={{ fontSize: '1.1rem' }}>⚠️</span>
                 <span style={{ fontWeight: 700, fontSize: '0.98rem', color: 'var(--text-main)' }}>
-                  Task Risk
+                  Identified Issues
                 </span>
               </div>
-              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-danger-text)', marginBottom: '8px' }}>
-                {currentProfile.taskRisk.delayedCount || 3} critical tasks are delayed.
+              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: liveData?.issues?.length > 0 ? 'var(--color-danger-text)' : 'var(--color-success-text)', marginBottom: '8px' }}>
+                {liveData ? `${liveData.issues.length} active issue(s) identified` : `${fallbackProfile.taskRisk.delayedCount || 3} critical tasks delayed`}
               </div>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.45' }}>
-                {currentProfile.taskRisk.summary}
+                {liveData && liveData.issues.length > 0
+                  ? liveData.issues[0]
+                  : (liveData ? 'No critical operational risks or site safety blockers flagged.' : fallbackProfile.taskRisk.summary)}
               </p>
               <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-light)', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                Key blocker: <strong>Fire Suppression Hydrostatic Test</strong>
+                Priority: <strong>{isHighRisk ? 'Immediate Review' : 'Routine Monitoring'}</strong>
               </div>
             </div>
           </div>
@@ -314,14 +393,14 @@ export const AIInsights = ({
               <div>
                 <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <IconSparkles size={18} color="var(--color-accent)" />
-                  <span>AI Recommendations</span>
+                  <span>AI Recommended Directives</span>
                 </div>
-                <div className="card-subtitle">Strategic prioritized interventions calculated to recover schedule float</div>
+                <div className="card-subtitle">Prioritized interventions synthesized to recover project float and mitigate procurement risk</div>
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {currentProfile.recommendations.map((rec, index) => (
+              {effectiveRecommendations.map((rec, index) => (
                 <div
                   key={index}
                   style={{
@@ -359,91 +438,70 @@ export const AIInsights = ({
             </div>
           </div>
 
-          {/* Bottom 3 Sections: Key Insights, Potential Delays, Recommended Actions */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px' }}>
-            {/* Key Insights */}
-            <div className="card">
-              <div className="card-header">
-                <div>
-                  <div className="card-title">Key Insights</div>
-                  <div className="card-subtitle">Predictive models</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {currentProfile.keyInsights.map((ki, i) => (
-                  <div key={i} style={{ borderBottom: i < currentProfile.keyInsights.length - 1 ? '1px solid var(--border-light)' : 'none', paddingBottom: '10px' }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-main)', marginBottom: '3px' }}>
-                      {ki.title}
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                      {ki.detail}
-                    </div>
+          {/* Detailed Tables: Task Delays Breakdown & Material Deficit Breakdown */}
+          {liveData && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px' }}>
+              {/* Task Delays Detail */}
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <IconClock size={16} color="var(--color-danger)" />
+                    <span>Task Delays Detail</span>
                   </div>
-                ))}
+                </div>
+                {liveData.delays && liveData.delays.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {liveData.delays.map((d, i) => (
+                      <div key={i} style={{ padding: '10px 12px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--text-main)' }}>{d.task}</span>
+                          <span className="badge badge-delayed" style={{ fontSize: '0.72rem' }}>+{d.delayDays}d Overdue</span>
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{d.reason}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-success)', background: 'rgba(16, 185, 129, 0.05)', borderRadius: 'var(--radius-md)' }}>
+                    ✔ No task delays detected.
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Potential Delays */}
-            <div className="card">
-              <div className="card-header">
-                <div>
-                  <div className="card-title">Potential Delays</div>
-                  <div className="card-subtitle">Probability risk matrix</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {currentProfile.potentialDelays.map((del, i) => (
-                  <div key={i} style={{ padding: '10px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
-                      {del.cause}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      <span>Probability: <strong style={{ color: 'var(--color-danger)' }}>{del.probability}</strong></span>
-                      <span>Impact: <strong>{del.impact}</strong></span>
-                    </div>
+              {/* Material Shortages Detail */}
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <IconMaterials size={16} color="var(--color-warning)" />
+                    <span>Material Deficits Detail</span>
                   </div>
-                ))}
+                </div>
+                {liveData.materialShortages && liveData.materialShortages.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {liveData.materialShortages.map((m, i) => (
+                      <div key={i} style={{ padding: '10px 12px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--text-main)' }}>{m.material}</span>
+                          <span className="badge badge-delayed" style={{ fontSize: '0.72rem' }}>Deficit: -{m.shortage} {m.unit}</span>
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          Available: {m.available} {m.unit} • Required: {m.required} {m.unit}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-success)', background: 'rgba(16, 185, 129, 0.05)', borderRadius: 'var(--radius-md)' }}>
+                    ✔ No material shortages detected.
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Recommended Actions */}
-            <div className="card">
-              <div className="card-header">
-                <div>
-                  <div className="card-title">Recommended Actions</div>
-                  <div className="card-subtitle">1-Click operational execution</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {currentProfile.recommendedActions.map((act) => (
-                  <div
-                    key={act.id}
-                    style={{
-                      padding: '12px',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 'var(--radius-md)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                    }}
-                  >
-                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                      {act.title}
-                    </div>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      style={{ alignSelf: 'flex-start', color: 'var(--color-accent)', borderColor: 'var(--color-accent-border)' }}
-                      onClick={() => onTriggerAction && onTriggerAction(`Executed: ${act.title}`)}
-                    >
-                      {act.button} →
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>
   );
 };
+
+export default AIInsights;

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import aiRoutes from './aiRoutes.js';
 
 const router = Router();
 
@@ -10,5 +11,8 @@ router.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// AI & Analytics module routes
+router.use('/ai', aiRoutes);
 
 export default router;
