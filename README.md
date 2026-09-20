@@ -1,10 +1,11 @@
 # 🏗️ BuildFlow AI
 
-> Smart Construction Data Management & AI-Powered Project Intelligence Platform
+> Smart Construction Data Management & AI-Powered Project Intelligence Platform  
+> **Hackathon Task 07** — End-to-end technology solution for managing, organizing, and utilizing construction and real-estate data.
 
 BuildFlow AI is a smart construction project management platform designed to centralize project information, improve progress tracking, monitor resources, identify project risks, and support better decision-making.
 
-The platform brings important construction information such as projects, tasks, materials, progress, reports, and AI-generated insights into one unified system.
+The platform brings critical construction information such as projects, tasks, materials, progress, reports, and AI-generated insights into one unified system.
 
 ---
 
@@ -16,164 +17,151 @@ Construction projects generate a large amount of information related to:
 - Tasks and deadlines
 - Construction materials
 - Site activities
-- Project reports
-- Documents
-- Project risks
+- Project reports & documents
+- Project risks & delays
 - Resource availability
 
-In many organizations, this information can be scattered across spreadsheets, documents, messages, and different teams.
+In many organizations, this information is scattered across spreadsheets, documents, messages, and disconnected teams. This makes it difficult for project managers to get a clear, real-time view of site operations.
 
-This can make it difficult for project managers to get a clear and updated view of project status.
-
-### Key Problems
+### Key Pain Points
 
 - Difficult project progress tracking
 - Delayed task identification
-- Poor visibility of material availability
+- Poor visibility of material availability & inventory stockouts
 - Scattered project information
 - Time-consuming manual reporting
-- Difficulty identifying project risks
-- Delayed decision-making
-- Lack of centralized project data
+- Inability to forecast project risks early
+- Delayed decision-making and lack of centralized project data
 
 ---
 
-# 💡 Our Solution
+## 💡 Our Solution
 
 BuildFlow AI provides a centralized platform where construction project managers can manage, track, and analyze project information from a single dashboard.
 
 The platform combines:
 
-**Construction Data + Project Tracking + Analytics + Artificial Intelligence**
+$$\text{Construction Data} + \text{Project Tracking} + \text{Analytics} + \text{Artificial Intelligence}$$
 
 to provide actionable project insights.
 
 ---
 
-# ✨ Core Features
+## ✨ Core Features & MVP Modules
 
-## 1. 📊 Project Dashboard
+### 1. 📊 Project Dashboard
+Provides a holistic operational summary of active construction projects from a single dashboard:
+- Total & Active Projects
+- Delayed Tasks requiring attention
+- Material & Inventory Shortage Alerts
+- Overall Construction Progress & Budget Utilization
+- Site Risk Radar
 
-Provides an overview of construction projects from a single dashboard.
+### 2. 🏗️ Project Management
+Centralized repository for construction sites:
+- Project Name, Client, Location, and Project Manager
+- Schedules, Milestones, and Progress Percentages
+- Health Status (`Planning`, `In Progress`, `On Hold`, `Completed`)
+- Risk Levels (`Low`, `Medium`, `High`)
 
-Displays:
+### 3. 📋 Task & Progress Tracking
+Track on-site construction tasks and trades:
+- Task name, assigned team/contractor, milestone deadlines
+- Real-time status (`In Progress`, `Completed`, `Delayed`)
+- Priority rankings (`Critical`, `High`, `Medium`, `Low`)
 
-- Total projects
-- Active projects
-- Delayed tasks
-- Material alerts
-- Overall project progress
-- Project status
-- Project risk level
+### 4. 📦 Material Tracking
+Monitor construction inventory and consumption:
+- Structural rebar, ready-mix concrete, glazing, electrical components
+- Required vs. available stock levels
+- Automated low-stock and shipment delay warnings
 
----
+### 5. 📈 Project Reports
+Centralized operational intelligence:
+- Daily progress reports & contractor performance logs
+- Safety & quality audit filings
+- Exportable summary reports
 
-## 2. 🏗️ Project Management
-
-Project managers can create and manage construction projects.
-
-Project information includes:
-
-- Project name
-- Client name
-- Location
-- Project manager
-- Start date
-- Expected completion date
-- Progress percentage
-- Project status
-- Risk level
-
-### Project Status
-
-- Planning
-- In Progress
-- On Hold
-- Completed
-
-### Risk Levels
-
-- Low
-- Medium
-- High
+### 6. 🤖 AI-Powered Project Insights
+Powered by **Google Gemini API** to analyze construction project data and surface predictive intelligence:
+- Early identification of schedule delay risks
+- Anomaly detection across trade dependencies
+- Material shortage impact forecasting
+- Recommended corrective actions for project directors
 
 ---
 
-## 3. 📋 Task & Progress Tracking
+## 🛠️ Technology Stack
 
-Track construction activities and project tasks.
-
-Each task can contain:
-
-- Task name
-- Assigned team/person
-- Start date
-- Deadline
-- Status
-- Progress percentage
-- Priority
-
-The system helps project managers identify delayed and high-priority activities.
+- **Frontend**: React + Vite (Custom Enterprise CSS Design System)
+- **Backend**: Node.js + Express (RESTful API)
+- **Database**: MongoDB (Mongoose ODM)
+- **AI Engine**: Google Gemini API
+- **API Testing**: Postman
+- **Version Control**: Git + GitHub
 
 ---
 
-## 4. 📦 Material Tracking
+## 📂 Repository Structure
 
-Monitor construction materials and their availability.
-
-The system can track:
-
-- Material name
-- Required quantity
-- Available quantity
-- Used quantity
-- Stock status
-- Low-stock alerts
-
-This helps project managers identify potential material shortages before they affect project progress.
+```
+BuildFlowAI/
+├── .gitignore              # Global git ignore (node_modules, .env, dist)
+├── README.md               # Project documentation and developer setup
+│
+├── backend/                # Node.js + Express backend service
+│   ├── .env.example        # Environment variable template (PORT, MONGODB_URI, GEMINI_API_KEY)
+│   ├── package.json        # Backend dependencies and scripts
+│   └── src/
+│       ├── config/         # Database and third-party configurations (db.js)
+│       ├── controllers/    # Route controllers for modules
+│       ├── middlewares/    # Centralized error handling and validators
+│       ├── models/         # Mongoose schemas (Projects, Tasks, Materials, Reports)
+│       ├── routes/         # Express API route declarations
+│       ├── services/       # Core business logic & Gemini AI services
+│       ├── utils/          # Shared helper functions
+│       └── server.js       # Express server initialization entrypoint
+│
+└── frontend/               # React + Vite frontend application
+    ├── .env.example        # Frontend environment variable template
+    ├── index.html          # HTML entrypoint
+    ├── package.json        # Frontend dependencies and scripts
+    ├── vite.config.js      # Vite build and dev configuration
+    └── src/
+        ├── assets/         # Static assets (images, icons)
+        ├── components/     # UI primitives & layout (Navbar, Sidebar, MetricCard, Badges)
+        ├── hooks/          # Custom React hooks
+        ├── mock/           # Realistic construction demo data for UI
+        ├── pages/          # Application views (Dashboard, ModulePlaceholders)
+        ├── services/       # API client & backend service integration
+        ├── utils/          # Frontend helpers and formatters
+        ├── App.jsx         # Root layout orchestrator
+        ├── index.css       # Global design system tokens & styles
+        └── main.jsx        # React DOM entrypoint
+```
 
 ---
 
-## 5. 📈 Project Reports
+## 🚀 Getting Started
 
-BuildFlow AI provides project information and reports including:
+### 1. Prerequisites
+- Node.js (v18+)
+- MongoDB instance (local or Atlas)
+- Google Gemini API Key
 
-- Project progress
-- Task status
-- Delayed activities
-- Material status
-- Project risk
-- Overall project health
+### 2. Backend Setup
+```bash
+cd backend
+npm install
+cp .env.example .env     # Configure PORT, MONGODB_URI, and GEMINI_API_KEY
+npm run dev
+```
 
-These reports help managers understand the current state of their projects.
-
----
-
-## 6. 🤖 AI-Powered Project Insights
-
-BuildFlow AI uses artificial intelligence to analyze construction project data and generate useful insights.
-
-AI can help identify:
-
-- Potential project risks
-- Schedule delays
-- Progress gaps
-- Material shortages
-- Critical tasks
-- Recommended actions
-
-### Example
-
-Project data:
-
-```text
-Project Progress: 62%
-Expected Progress: 75%
-
-Delayed Tasks:
-- Electrical Work: 6 days
-- Plumbing: 3 days
-
-Materials:
-- Cement: Low
-- Steel: Normal
+### 3. Frontend Setup
+```bash
+cd frontend
+npm install
+cp .env.example .env     # Configure VITE_API_BASE_URL
+npm run dev
+```
+Open `http://localhost:5173/` in your browser to view the application.
