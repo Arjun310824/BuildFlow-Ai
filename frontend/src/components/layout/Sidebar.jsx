@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   IconDashboard,
   IconProjects,
@@ -12,7 +13,6 @@ import {
   IconSettings,
   IconChevronDown,
   IconChevronRight,
-  IconPlus,
 } from '../common/Icons';
 
 export const Sidebar = ({
@@ -22,6 +22,8 @@ export const Sidebar = ({
   onCloseMobile,
   unreadAlertsCount = 3,
 }) => {
+  const { t } = useTranslation();
+
   // Collapsible state for submenu items
   const [openSubmenus, setOpenSubmenus] = useState({
     projects: true,
@@ -70,7 +72,7 @@ export const Sidebar = ({
             onClick={() => handleNavClick('dashboard')}
           >
             <span className="nav-icon"><IconDashboard /></span>
-            <span>Dashboard</span>
+            <span>{t('navigation.dashboard')}</span>
           </button>
 
           {/* Projects with Submenu */}
@@ -82,7 +84,7 @@ export const Sidebar = ({
               onClick={() => handleNavClick('projects')}
             >
               <span className="nav-icon"><IconProjects /></span>
-              <span>Projects</span>
+              <span>{t('navigation.projects')}</span>
               <span
                 onClick={(e) => toggleSubmenu('projects', e)}
                 style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}
@@ -96,19 +98,19 @@ export const Sidebar = ({
                   className={`subnav-btn ${activeTab === 'projects' ? 'active' : ''}`}
                   onClick={() => handleNavClick('projects')}
                 >
-                  All Projects
+                  {t('navigation.allProjects')}
                 </button>
                 <button
                   className={`subnav-btn ${activeTab === 'add-project' ? 'active' : ''}`}
                   onClick={() => handleNavClick('add-project')}
                 >
-                  + Add Project
+                  + {t('projects.addProject')}
                 </button>
                 <button
                   className={`subnav-btn ${activeTab === 'project-details' ? 'active' : ''}`}
                   onClick={() => handleNavClick('project-details')}
                 >
-                  Project Details
+                  {t('navigation.projectDetails')}
                 </button>
               </div>
             )}
@@ -121,7 +123,7 @@ export const Sidebar = ({
               onClick={() => handleNavClick('tasks')}
             >
               <span className="nav-icon"><IconTasks /></span>
-              <span>Tasks</span>
+              <span>{t('navigation.tasks')}</span>
               <span
                 onClick={(e) => toggleSubmenu('tasks', e)}
                 style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}
@@ -135,13 +137,13 @@ export const Sidebar = ({
                   className={`subnav-btn ${activeTab === 'tasks' ? 'active' : ''}`}
                   onClick={() => handleNavClick('tasks')}
                 >
-                  All Tasks
+                  {t('navigation.allTasks')}
                 </button>
                 <button
                   className={`subnav-btn ${activeTab === 'add-task' ? 'active' : ''}`}
                   onClick={() => handleNavClick('add-task')}
                 >
-                  + Add Task
+                  + {t('tasks.addTask')}
                 </button>
               </div>
             )}
@@ -154,7 +156,7 @@ export const Sidebar = ({
               onClick={() => handleNavClick('materials')}
             >
               <span className="nav-icon"><IconMaterials /></span>
-              <span>Materials</span>
+              <span>{t('navigation.materials')}</span>
               <span
                 onClick={(e) => toggleSubmenu('materials', e)}
                 style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}
@@ -168,13 +170,13 @@ export const Sidebar = ({
                   className={`subnav-btn ${activeTab === 'materials' ? 'active' : ''}`}
                   onClick={() => handleNavClick('materials')}
                 >
-                  Inventory
+                  {t('navigation.inventory')}
                 </button>
                 <button
                   className={`subnav-btn ${activeTab === 'suppliers' ? 'active' : ''}`}
                   onClick={() => handleNavClick('suppliers')}
                 >
-                  Suppliers
+                  {t('navigation.suppliers')}
                 </button>
               </div>
             )}
@@ -186,7 +188,7 @@ export const Sidebar = ({
             onClick={() => handleNavClick('site-updates')}
           >
             <span className="nav-icon"><IconSiteUpdates /></span>
-            <span>Site Updates</span>
+            <span>{t('navigation.siteUpdates')}</span>
           </button>
 
           {/* Documents */}
@@ -195,7 +197,7 @@ export const Sidebar = ({
             onClick={() => handleNavClick('documents')}
           >
             <span className="nav-icon"><IconDocuments /></span>
-            <span>Documents</span>
+            <span>{t('navigation.documents')}</span>
           </button>
 
           {/* Reports */}
@@ -204,7 +206,7 @@ export const Sidebar = ({
             onClick={() => handleNavClick('reports')}
           >
             <span className="nav-icon"><IconReports /></span>
-            <span>Reports</span>
+            <span>{t('navigation.reports')}</span>
           </button>
 
           <div className="nav-divider" />
@@ -215,7 +217,7 @@ export const Sidebar = ({
             onClick={() => handleNavClick('insights')}
           >
             <span className="nav-icon" style={{ color: 'var(--color-accent)' }}><IconInsights /></span>
-            <span>AI Insights</span>
+            <span>{t('navigation.aiInsights')}</span>
             <span
               style={{
                 marginLeft: 'auto',
@@ -237,7 +239,7 @@ export const Sidebar = ({
             onClick={() => handleNavClick('alerts')}
           >
             <span className="nav-icon"><IconAlerts /></span>
-            <span>Alerts</span>
+            <span>{t('navigation.alerts')}</span>
             {unreadAlertsCount > 0 && (
               <span className="nav-badge-pill" style={{ background: '#fee2e2', color: '#b91c1c' }}>
                 {unreadAlertsCount}
@@ -251,7 +253,7 @@ export const Sidebar = ({
             onClick={() => handleNavClick('settings')}
           >
             <span className="nav-icon"><IconSettings /></span>
-            <span>Settings</span>
+            <span>{t('navigation.settings')}</span>
           </button>
         </div>
 
@@ -268,7 +270,7 @@ export const Sidebar = ({
             </div>
             <div className="user-meta-info">
               <div className="user-meta-name">Alex Morgan</div>
-              <div className="user-meta-role">Project Manager</div>
+              <div className="user-meta-role">{t('common.manager')}</div>
             </div>
           </div>
         </div>

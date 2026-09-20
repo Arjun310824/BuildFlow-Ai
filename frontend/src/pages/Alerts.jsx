@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   IconAlerts,
   IconAlertTriangle,
@@ -13,9 +14,15 @@ export const Alerts = ({
   onSelectProject,
   onDismissAlert,
 }) => {
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  const categories = ['All', 'Critical', 'Warning', 'Information'];
+  const categories = [
+    { id: 'All', label: t('alerts.filterAll') },
+    { id: 'Critical', label: t('alerts.filterCritical') },
+    { id: 'Warning', label: t('alerts.filterWarning') },
+    { id: 'Information', label: t('alerts.filterInfo') },
+  ];
 
   const filteredAlerts = alerts.filter((alt) => {
     if (selectedCategory === 'All') return true;
@@ -51,8 +58,8 @@ export const Alerts = ({
       {/* Header */}
       <div className="page-header-row">
         <div className="page-header-titles">
-          <h1>Alerts & Notifications</h1>
-          <p>Real-time field incident alerts, inventory threshold notifications, and compliance warnings.</p>
+          <h1>{t('alerts.title')}</h1>
+          <p>{t('alerts.subtitle')}</p>
         </div>
       </div>
 
@@ -60,17 +67,17 @@ export const Alerts = ({
       <div className="tab-pills-bar">
         {categories.map((cat) => {
           const count =
-            cat === 'All'
+            cat.id === 'All'
               ? alerts.length
-              : alerts.filter((a) => a.type.toLowerCase() === cat.toLowerCase()).length;
+              : alerts.filter((a) => a.type.toLowerCase() === cat.id.toLowerCase()).length;
 
           return (
             <button
-              key={cat}
-              className={`tab-pill-btn ${selectedCategory === cat ? 'active' : ''}`}
-              onClick={() => setSelectedCategory(cat)}
+              key={cat.id}
+              className={`tab-pill-btn ${selectedCategory === cat.id ? 'active' : ''}`}
+              onClick={() => setSelectedCategory(cat.id)}
             >
-              {cat} ({count})
+              {cat.label} ({count})
             </button>
           );
         })}
@@ -80,7 +87,7 @@ export const Alerts = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {filteredAlerts.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-            No alerts found in this category. All systems normal.
+            {t('alerts.noAlerts')}
           </div>
         ) : (
           filteredAlerts.map((alert) => (
@@ -101,45 +108,42 @@ export const Alerts = ({
                   <span className={`badge ${getAlertBadgeClass(alert.type)}`}>
                     {alert.type}
                   </span>
-                  <span style={{ fontWeight: 700, fontSize: '0.98rem', color: 'var(--text-main)' }}>
-                    {alert.title}
-                  </span>
-                </div>
-
-                <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: '1.45', marginBottom: '12px' }}>
-                  {alert.description}
-                </p>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <IconBuilding size={14} />
-                    <strong>{alert.project}</strong>
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <IconClock size={14} />
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                     {alert.time}
                   </span>
                 </div>
+
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
+                  {alert.title}
+                </h3>
+
+                <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: '1.45', marginBottom: '8px' }}>
+                  {alert.message}
+                </p>
+
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <IconBuilding size={14} />
+                  <span>{alert.project}</span>
+                </div>
               </div>
 
-              {/* Action Button */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
                 <button
                   className="btn btn-secondary btn-sm"
-                  style={{
-                    color: alert.type === 'Critical' ? 'var(--color-danger)' : 'var(--color-accent)',
-                    borderColor: 'var(--border-color)',
-                  }}
                   onClick={() => {
-                    if (alert.projectId && onSelectProject) {
-                      onSelectProject(alert.projectId);
-                    }
-                    if (alert.targetTab && onNavigate) {
-                      onNavigate(alert.targetTab);
-                    }
+                    if (onSelectProject) onSelectProject('PRJ-101');
+                    onNavigate('project-details');
                   }}
                 >
-                  {alert.actionText} →
+                  {t('common.viewDetails')}
+                </button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  style={{ color: 'var(--color-success)' }}
+                  onClick={() => onDismissAlert && onDismissAlert(alert.id)}
+                >
+                  <IconCheck size={14} />
+                  <span>{t('common.close')}</span>
                 </button>
               </div>
             </div>

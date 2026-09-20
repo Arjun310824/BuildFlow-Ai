@@ -21,8 +21,30 @@ export const apiClient = async (endpoint, options = {}) => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || `API request failed with status ${response.status}`);
+    throw new Error(data.error || data.message || `API request failed with status ${response.status}`);
   }
 
   return data;
+};
+
+// ==========================================
+// AI Project Intelligence Endpoints
+// ==========================================
+
+export const analyzeProjectApi = async (projectId) => {
+  return await apiClient('/ai/analyze-project', {
+    method: 'POST',
+    body: JSON.stringify({ projectId }),
+  });
+};
+
+export const chatWithProjectApi = async (projectId, message) => {
+  return await apiClient('/ai/chat', {
+    method: 'POST',
+    body: JSON.stringify({ projectId, message }),
+  });
+};
+
+export const getAiProjectsApi = async () => {
+  return await apiClient('/ai/projects');
 };

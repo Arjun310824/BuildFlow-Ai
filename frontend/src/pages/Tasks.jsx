@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StatusBadge, PriorityBadge } from '../components/common/Badge';
 import { ProgressBar } from '../components/common/ProgressBar';
-import { IconSearch, IconPlus, IconFilter } from '../components/common/Icons';
+import { IconSearch, IconPlus } from '../components/common/Icons';
 
 export const Tasks = ({
   tasks = [],
@@ -9,6 +10,7 @@ export const Tasks = ({
   onNavigate,
   onUpdateTaskStatus,
 }) => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [projectFilter, setProjectFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -35,13 +37,13 @@ export const Tasks = ({
       {/* Header */}
       <div className="page-header-row">
         <div className="page-header-titles">
-          <h1>Tasks</h1>
-          <p>Monitor active construction work orders, trade assignments, and milestone deadlines.</p>
+          <h1>{t('tasks.title')}</h1>
+          <p>{t('tasks.subtitle')}</p>
         </div>
         <div className="page-header-actions">
           <button className="btn btn-primary" onClick={() => onNavigate('add-task')}>
             <IconPlus size={16} />
-            <span>Add Task</span>
+            <span>{t('tasks.addTask')}</span>
           </button>
         </div>
       </div>
@@ -53,7 +55,7 @@ export const Tasks = ({
             <IconSearch size={16} color="var(--text-muted)" />
             <input
               type="text"
-              placeholder="Search Tasks..."
+              placeholder={t('tasks.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -65,7 +67,7 @@ export const Tasks = ({
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
           >
-            <option value="All">All Projects</option>
+            <option value="All">{t('tasks.allProjects')}</option>
             {projects.map((p) => (
               <option key={p.id} value={p.name}>
                 {p.name}
@@ -79,11 +81,11 @@ export const Tasks = ({
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="All">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-            <option value="Delayed">Delayed</option>
+            <option value="All">{t('tasks.allStatuses')}</option>
+            <option value="Pending">{t('status.pending')}</option>
+            <option value="In Progress">{t('status.inProgress')}</option>
+            <option value="Completed">{t('status.completed')}</option>
+            <option value="Delayed">{t('status.delayed')}</option>
           </select>
 
           {/* Priority Filter */}
@@ -92,11 +94,11 @@ export const Tasks = ({
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
           >
-            <option value="All">All Priorities</option>
-            <option value="Critical">Critical</option>
-            <option value="High">High</option>
-            <option value="Medium">Medium</option>
-            <option value="Low">Low</option>
+            <option value="All">{t('tasks.allPriorities')}</option>
+            <option value="Critical">{t('status.critical')}</option>
+            <option value="High">{t('status.high')}</option>
+            <option value="Medium">{t('status.medium')}</option>
+            <option value="Low">{t('status.low')}</option>
           </select>
 
           {/* Assignee Filter */}
@@ -105,7 +107,7 @@ export const Tasks = ({
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
           >
-            <option value="All">All Assignees</option>
+            <option value="All">{t('tasks.allAssignees')}</option>
             {assignees.filter((a) => a !== 'All').map((a) => (
               <option key={a} value={a}>
                 {a}
@@ -115,7 +117,7 @@ export const Tasks = ({
         </div>
 
         <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-          Showing <strong>{filteredTasks.length}</strong> of {tasks.length} tasks
+          {t('common.showingOf', { count: filteredTasks.length, total: tasks.length })}
         </div>
       </div>
 
@@ -124,46 +126,40 @@ export const Tasks = ({
         <table className="data-table">
           <thead>
             <tr>
-              <th>Task</th>
-              <th>Project</th>
-              <th>Assigned To</th>
-              <th>Priority</th>
-              <th>Due Date</th>
-              <th style={{ width: '160px' }}>Progress</th>
-              <th>Status</th>
+              <th>{t('tasks.taskName')}</th>
+              <th>{t('navigation.projects')}</th>
+              <th>{t('tasks.assignee')}</th>
+              <th>{t('common.priority')}</th>
+              <th>{t('tasks.dueDate')}</th>
+              <th style={{ width: '160px' }}>{t('common.progress')}</th>
+              <th>{t('common.status')}</th>
             </tr>
           </thead>
           <tbody>
             {filteredTasks.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                  No tasks found matching filter criteria.
+                  {t('tasks.noTasks')}
                 </td>
               </tr>
             ) : (
-              filteredTasks.map((task) => (
-                <tr key={task.id}>
+              filteredTasks.map((tsk) => (
+                <tr key={tsk.id}>
                   <td>
-                    <div className="table-cell-title">{task.name}</div>
-                    <div className="table-cell-sub">{task.id}</div>
+                    <div className="table-cell-title">{tsk.name}</div>
+                    <div className="table-cell-sub">{tsk.id} • {tsk.description}</div>
+                  </td>
+                  <td>{tsk.project}</td>
+                  <td>{tsk.assignedTo}</td>
+                  <td>
+                    <PriorityBadge priority={tsk.priority} />
+                  </td>
+                  <td>{tsk.dueDate}</td>
+                  <td>
+                    <ProgressBar progress={tsk.progress} />
                   </td>
                   <td>
-                    <span style={{ fontWeight: 500 }}>{task.project}</span>
-                  </td>
-                  <td>{task.assignedTo}</td>
-                  <td>
-                    <PriorityBadge priority={task.priority} />
-                  </td>
-                  <td>
-                    <span style={{ color: task.status === 'Delayed' ? 'var(--color-danger)' : 'var(--text-muted)' }}>
-                      {task.dueDate}
-                    </span>
-                  </td>
-                  <td>
-                    <ProgressBar progress={task.progress} />
-                  </td>
-                  <td>
-                    <StatusBadge status={task.status} />
+                    <StatusBadge status={tsk.status} />
                   </td>
                 </tr>
               ))

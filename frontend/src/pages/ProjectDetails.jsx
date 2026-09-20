@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StatusBadge, PriorityBadge, TypeBadge } from '../components/common/Badge';
 import { ProgressBar } from '../components/common/ProgressBar';
 import {
@@ -23,6 +24,7 @@ export const ProjectDetails = ({
   onNavigate,
   onSelectProject,
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('overview');
 
   // Fallback to Residential Tower A if none specified
@@ -63,12 +65,21 @@ export const ProjectDetails = ({
   const healthScore = currentProject.healthScore || 68;
   const isHealthRisk = healthScore < 75;
 
+  const tabs = [
+    { id: 'overview', label: t('projectDetails.overview') },
+    { id: 'tasks', label: t('navigation.tasks') },
+    { id: 'materials', label: t('navigation.materials') },
+    { id: 'site updates', label: t('navigation.siteUpdates') },
+    { id: 'documents', label: t('navigation.documents') },
+    { id: 'reports', label: t('navigation.reports') },
+  ];
+
   return (
     <div className="page-container">
       {/* Project Switcher Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem' }}>
-          <span style={{ color: 'var(--text-muted)' }}>Project:</span>
+          <span style={{ color: 'var(--text-muted)' }}>{t('navigation.projects')}:</span>
           <select
             className="filter-select"
             value={currentProject.id}
@@ -86,7 +97,7 @@ export const ProjectDetails = ({
           className="btn btn-secondary btn-sm"
           onClick={() => onNavigate('insights')}
         >
-          View Gemini AI Insights →
+          {t('projectDetails.viewAiInsights')}
         </button>
       </div>
 
@@ -119,7 +130,7 @@ export const ProjectDetails = ({
           >
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                PROJECT HEALTH
+                {t('projectDetails.projectHealth')}
               </div>
               <div
                 style={{
@@ -128,7 +139,7 @@ export const ProjectDetails = ({
                   color: isHealthRisk ? 'var(--color-warning-text)' : 'var(--color-success-text)',
                 }}
               >
-                {isHealthRisk ? 'AT RISK' : 'OPTIMAL'}
+                {isHealthRisk ? t('aiInsights.highRisk') : t('status.optimal')}
               </div>
             </div>
             <div
@@ -163,31 +174,31 @@ export const ProjectDetails = ({
           }}
         >
           <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Location</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('common.location')}</span>
             <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.88rem' }}>
               {currentProject.location}
             </span>
           </div>
           <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Project Manager</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('projects.projectManager')}</span>
             <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.88rem' }}>
               {currentProject.manager}
             </span>
           </div>
           <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Timeline</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('common.timeline')}</span>
             <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.88rem' }}>
               {currentProject.startDate} → {currentProject.expectedCompletion}
             </span>
           </div>
           <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Budget</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('projects.budget')}</span>
             <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.88rem' }}>
               {currentProject.budget}
             </span>
           </div>
           <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Current Progress</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('common.progress')}</span>
             <div style={{ marginTop: '2px' }}>
               <ProgressBar progress={currentProject.progress} height={6} />
             </div>
@@ -197,14 +208,13 @@ export const ProjectDetails = ({
 
       {/* Tabs */}
       <div className="tab-pills-bar">
-        {['overview', 'tasks', 'materials', 'site updates', 'documents', 'reports'].map((tab) => (
+        {tabs.map((tab) => (
           <button
-            key={tab}
-            className={`tab-pill-btn ${activeTab === tab ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab)}
-            style={{ textTransform: 'capitalize' }}
+            key={tab.id}
+            className={`tab-pill-btn ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
           >
-            {tab}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -215,17 +225,17 @@ export const ProjectDetails = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
             {/* Project Progress */}
             <div className="card">
-              <div className="stat-label">Project Progress</div>
+              <div className="stat-label">{t('dashboard.projectProgress')}</div>
               <div className="stat-value">{currentProject.progress}%</div>
               <div style={{ marginTop: '10px' }}>
                 <ProgressBar progress={currentProject.progress} showLabel={false} height={6} />
               </div>
-              <div className="stat-subtext">Phase 2: Superstructure</div>
+              <div className="stat-subtext">{currentProject.category || 'Superstructure'}</div>
             </div>
 
             {/* Task Completion */}
             <div className="card">
-              <div className="stat-label">Task Completion</div>
+              <div className="stat-label">{t('tasks.title')}</div>
               <div className="stat-value">
                 {projectTasks.filter((t) => t.status === 'Completed').length} / {projectTasks.length || 4}
               </div>
@@ -243,30 +253,30 @@ export const ProjectDetails = ({
                 />
               </div>
               <div className="stat-subtext" style={{ color: 'var(--color-danger)' }}>
-                {projectTasks.filter((t) => t.status === 'Delayed').length} delayed tasks
+                {projectTasks.filter((t) => t.status === 'Delayed').length} {t('status.delayed')}
               </div>
             </div>
 
             {/* Material Status */}
             <div className="card">
-              <div className="stat-label">Material Status</div>
+              <div className="stat-label">{t('materials.title')}</div>
               <div className="stat-value">
                 {projectMaterials.filter((m) => m.status === 'In Stock').length} / {projectMaterials.length || 3}
               </div>
               <div style={{ marginTop: '10px' }}>
-                <span className="badge badge-delayed">Cement Low Stock</span>
+                <span className="badge badge-delayed">{t('status.lowStock')}</span>
               </div>
-              <div className="stat-subtext">80 / 500 bags available</div>
+              <div className="stat-subtext">80 / 500 units</div>
             </div>
 
             {/* Budget Status */}
             <div className="card">
-              <div className="stat-label">Budget Status</div>
+              <div className="stat-label">{t('projects.budget')}</div>
               <div className="stat-value">{currentProject.spent || '$12.5M'}</div>
               <div style={{ marginTop: '10px' }}>
                 <ProgressBar progress={68} showLabel={false} height={6} />
               </div>
-              <div className="stat-subtext">68% of {currentProject.budget} allocated</div>
+              <div className="stat-subtext">68% of {currentProject.budget}</div>
             </div>
           </div>
 
@@ -274,8 +284,8 @@ export const ProjectDetails = ({
           <div className="card">
             <div className="card-header">
               <div>
-                <div className="card-title">Recent Activity</div>
-                <div className="card-subtitle">Chronological field updates and inspection filings</div>
+                <div className="card-title">{t('dashboard.recentSiteUpdates')}</div>
+                <div className="card-subtitle">{t('dashboard.recentSiteUpdatesSub')}</div>
               </div>
             </div>
 
@@ -296,7 +306,7 @@ export const ProjectDetails = ({
                     <span style={{ fontSize: '1rem', marginTop: '2px' }}>📍</span>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.86rem' }}>{upd.supervisor} (Site Lead)</span>
+                        <span style={{ fontWeight: 600, fontSize: '0.86rem' }}>{upd.supervisor}</span>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{upd.date}</span>
                       </div>
                       <p style={{ fontSize: '0.82rem', color: 'var(--text-main)', marginBottom: '4px' }}>
@@ -304,7 +314,7 @@ export const ProjectDetails = ({
                       </p>
                       {upd.issues && (
                         <div style={{ fontSize: '0.78rem', color: 'var(--color-danger-text)', fontWeight: 500 }}>
-                          Issue: {upd.issues}
+                          ⚠️ {upd.issues}
                         </div>
                       )}
                     </div>
@@ -312,7 +322,7 @@ export const ProjectDetails = ({
                 ))
               ) : (
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.86rem', padding: '12px' }}>
-                  No recent activities recorded for this project yet.
+                  {t('common.noData')}
                 </div>
               )}
             </div>
@@ -326,12 +336,12 @@ export const ProjectDetails = ({
           <table className="data-table">
             <thead>
               <tr>
-                <th>Task</th>
-                <th>Assigned To</th>
-                <th>Priority</th>
-                <th>Due Date</th>
-                <th>Progress</th>
-                <th>Status</th>
+                <th>{t('tasks.taskName')}</th>
+                <th>{t('tasks.assignee')}</th>
+                <th>{t('common.priority')}</th>
+                <th>{t('tasks.dueDate')}</th>
+                <th>{t('common.progress')}</th>
+                <th>{t('common.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -359,12 +369,12 @@ export const ProjectDetails = ({
           <table className="data-table">
             <thead>
               <tr>
-                <th>Material</th>
-                <th>Required</th>
-                <th>Available</th>
-                <th>Used</th>
-                <th>Supplier</th>
-                <th>Status</th>
+                <th>{t('materials.materialName')}</th>
+                <th>{t('materials.requiredQty')}</th>
+                <th>{t('materials.availableQty')}</th>
+                <th>{t('materials.usedQty')}</th>
+                <th>{t('suppliers.supplierName')}</th>
+                <th>{t('materials.stockStatus')}</th>
               </tr>
             </thead>
             <tbody>
@@ -396,7 +406,7 @@ export const ProjectDetails = ({
                 {u.workCompleted}
               </p>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Workers on site: <strong>{u.workers}</strong> | Supervisor: <strong>{u.supervisor}</strong>
+                {t('dashboard.workersOnSite')} <strong>{u.workers}</strong> | {t('siteUpdates.supervisor')}: <strong>{u.supervisor}</strong>
               </div>
               {u.issues && (
                 <div style={{ marginTop: '8px', padding: '8px 12px', background: 'var(--color-danger-bg)', borderRadius: 'var(--radius-sm)', color: 'var(--color-danger-text)', fontSize: '0.8rem' }}>
@@ -414,12 +424,12 @@ export const ProjectDetails = ({
           <table className="data-table">
             <thead>
               <tr>
-                <th>Document Name</th>
-                <th>Type</th>
-                <th>Uploaded By</th>
-                <th>Date</th>
-                <th>Size</th>
-                <th>Status</th>
+                <th>{t('documents.fileName')}</th>
+                <th>{t('documents.category')}</th>
+                <th>{t('documents.uploadedBy')}</th>
+                <th>{t('documents.uploadDate')}</th>
+                <th>{t('documents.fileSize')}</th>
+                <th>{t('common.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -441,13 +451,13 @@ export const ProjectDetails = ({
       {/* Tab 6: Reports */}
       {activeTab === 'reports' && (
         <div className="card">
-          <div className="card-title" style={{ marginBottom: '8px' }}>Project Analytics Summary</div>
+          <div className="card-title" style={{ marginBottom: '8px' }}>{t('reports.title')}</div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', marginBottom: '16px' }}>
-            Consolidated weekly performance and safety logs for {currentProject.name}.
+            {t('reports.subtitle')}
           </p>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button className="btn btn-secondary btn-sm">Export Project PDF</button>
-            <button className="btn btn-secondary btn-sm">Download Work Logs CSV</button>
+            <button className="btn btn-secondary btn-sm">{t('reports.exportPdf')}</button>
+            <button className="btn btn-secondary btn-sm">{t('reports.exportCsv')}</button>
           </div>
         </div>
       )}

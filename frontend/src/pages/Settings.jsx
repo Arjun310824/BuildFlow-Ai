@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const Settings = ({ onSaveFeedback }) => {
+  const { t, i18n } = useTranslation();
   const [activeSection, setActiveSection] = useState('profile');
 
   // Profile State
@@ -42,16 +44,29 @@ export const Settings = ({ onSaveFeedback }) => {
   const handleSave = (e) => {
     e.preventDefault();
     if (onSaveFeedback) {
-      onSaveFeedback('Settings updated successfully.');
+      onSaveFeedback(t('settings.savePreferences') + ' - ' + t('common.success'));
+    }
+  };
+
+  const handleLanguageChange = (langCode) => {
+    i18n.changeLanguage(langCode);
+    if (onSaveFeedback) {
+      const msg =
+        langCode === 'hi'
+          ? 'भाषा बदलकर हिन्दी कर दी गई है।'
+          : langCode === 'gu'
+          ? 'ભાષા બદલીને ગુજરાતી કરવામાં આવી છે.'
+          : 'Language changed to English.';
+      onSaveFeedback(msg);
     }
   };
 
   const sections = [
-    { id: 'profile', label: 'Profile' },
-    { id: 'company', label: 'Company' },
-    { id: 'notifications', label: 'Notifications' },
-    { id: 'security', label: 'Security' },
-    { id: 'preferences', label: 'Preferences' },
+    { id: 'profile', label: t('settings.tabProfile') },
+    { id: 'company', label: t('settings.tabCompany') },
+    { id: 'notifications', label: t('settings.tabNotifications') },
+    { id: 'security', label: t('settings.tabSecurity') },
+    { id: 'preferences', label: t('settings.tabPreferences') },
   ];
 
   return (
@@ -59,8 +74,65 @@ export const Settings = ({ onSaveFeedback }) => {
       {/* Header */}
       <div className="page-header-row">
         <div className="page-header-titles">
-          <h1>Settings</h1>
-          <p>Manage project manager profile, enterprise organizational metadata, notification webhooks, and security.</p>
+          <h1>{t('settings.title')}</h1>
+          <p>{t('settings.subtitle')}</p>
+        </div>
+      </div>
+
+      {/* Global Language Selector Banner */}
+      <div
+        className="form-card"
+        style={{
+          maxWidth: '820px',
+          marginBottom: '24px',
+          padding: '20px 24px',
+          background: '#ffffff',
+          border: '1px solid var(--border-color)',
+          borderLeft: '4px solid var(--color-accent)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-card)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+              <span style={{ fontSize: '1.2rem' }}>🌐</span>
+              <span>{t('settings.languageSection')}</span>
+            </div>
+            <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              {t('settings.languageDesc')}
+            </div>
+          </div>
+
+          <div style={{ minWidth: '220px' }}>
+            <label
+              htmlFor="settings-language-select"
+              style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}
+            >
+              {t('settings.languageLabel')}
+            </label>
+            <select
+              id="settings-language-select"
+              className="form-control"
+              value={i18n.language || 'en'}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 14px',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)',
+                background: '#ffffff',
+                color: 'var(--text-main)',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="en" style={{ background: '#ffffff', color: '#0f172a' }}>🇬🇧 English</option>
+              <option value="hi" style={{ background: '#ffffff', color: '#0f172a' }}>🇮🇳 हिन्दी (Hindi)</option>
+              <option value="gu" style={{ background: '#ffffff', color: '#0f172a' }}>🇮🇳 ગુજરાતી (Gujarati)</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -100,7 +172,7 @@ export const Settings = ({ onSaveFeedback }) => {
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">Full Name</label>
+                <label className="form-label">{t('settings.profileName')}</label>
                 <input
                   type="text"
                   className="form-control"
@@ -110,7 +182,7 @@ export const Settings = ({ onSaveFeedback }) => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Professional Role</label>
+                <label className="form-label">{t('settings.profileRole')}</label>
                 <input
                   type="text"
                   className="form-control"
@@ -120,7 +192,7 @@ export const Settings = ({ onSaveFeedback }) => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Email Address</label>
+                <label className="form-label">{t('settings.profileEmail')}</label>
                 <input
                   type="email"
                   className="form-control"
@@ -130,7 +202,7 @@ export const Settings = ({ onSaveFeedback }) => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Phone Number</label>
+                <label className="form-label">{t('settings.profilePhone')}</label>
                 <input
                   type="text"
                   className="form-control"
@@ -142,7 +214,7 @@ export const Settings = ({ onSaveFeedback }) => {
 
             <div className="form-actions">
               <button type="submit" className="btn btn-primary">
-                Save Profile Changes
+                {t('settings.saveProfile')}
               </button>
             </div>
           </form>
@@ -153,7 +225,7 @@ export const Settings = ({ onSaveFeedback }) => {
           <form onSubmit={handleSave}>
             <div className="form-grid-2">
               <div className="form-group full-width">
-                <label className="form-label">Company Legal Entity</label>
+                <label className="form-label">{t('settings.companyName')}</label>
                 <input
                   type="text"
                   className="form-control"
@@ -163,7 +235,7 @@ export const Settings = ({ onSaveFeedback }) => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">General Contractor License #</label>
+                <label className="form-label">{t('settings.licenseNumber')}</label>
                 <input
                   type="text"
                   className="form-control"
@@ -173,7 +245,7 @@ export const Settings = ({ onSaveFeedback }) => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Tax ID / EIN</label>
+                <label className="form-label">{t('settings.taxId')}</label>
                 <input
                   type="text"
                   className="form-control"
@@ -183,7 +255,7 @@ export const Settings = ({ onSaveFeedback }) => {
               </div>
 
               <div className="form-group full-width">
-                <label className="form-label">Headquarters Address</label>
+                <label className="form-label">{t('settings.headquarters')}</label>
                 <input
                   type="text"
                   className="form-control"
@@ -195,7 +267,7 @@ export const Settings = ({ onSaveFeedback }) => {
 
             <div className="form-actions">
               <button type="submit" className="btn btn-primary">
-                Update Company Details
+                {t('settings.saveCompany')}
               </button>
             </div>
           </form>
@@ -218,7 +290,7 @@ export const Settings = ({ onSaveFeedback }) => {
               >
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-main)' }}>
-                    Email Notifications for Critical Delays
+                    {t('settings.emailAlerts')}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                     Immediate alert dispatch when schedule variance exceeds 10%
@@ -245,10 +317,10 @@ export const Settings = ({ onSaveFeedback }) => {
               >
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-main)' }}>
-                    SMS Urgent Alerts
+                    {t('settings.smsAlerts')}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    Direct SMS message for site safety hazards and material stockouts
+                    High-priority dispatch to field superintendents
                   </div>
                 </div>
                 <input
@@ -272,10 +344,10 @@ export const Settings = ({ onSaveFeedback }) => {
               >
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-main)' }}>
-                    Daily Operations Digest
+                    {t('settings.dailyDigest')}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    Consolidated 07:00 AM summary of daily logs and weather forecasts
+                    Delivered daily at 07:00 AM local site time
                   </div>
                 </div>
                 <input
@@ -289,7 +361,7 @@ export const Settings = ({ onSaveFeedback }) => {
 
             <div className="form-actions">
               <button type="submit" className="btn btn-primary">
-                Save Notification Preferences
+                {t('common.save')}
               </button>
             </div>
           </form>
@@ -298,54 +370,38 @@ export const Settings = ({ onSaveFeedback }) => {
         {/* Security Section */}
         {activeSection === 'security' && (
           <form onSubmit={handleSave}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <div
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <label
                 style={{
-                  padding: '16px',
-                  background: 'var(--bg-subtle)',
-                  borderRadius: 'var(--radius-md)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
+                  padding: '14px',
+                  background: 'var(--bg-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer',
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)' }}>
-                    Two-Factor Authentication (2FA)
+                  <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-main)' }}>
+                    {t('settings.twoFactor')}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    Require hardware key or authenticator app token on login
+                    Requires authenticator app token or hardware security key
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${twoFactor ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setTwoFactor((prev) => !prev)}
-                >
-                  {twoFactor ? 'Enabled (Active)' : 'Disabled'}
-                </button>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Current Password</label>
-                <input type="password" placeholder="••••••••••••" className="form-control" />
-              </div>
-
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">New Password</label>
-                  <input type="password" placeholder="Minimum 12 characters" className="form-control" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Confirm New Password</label>
-                  <input type="password" placeholder="Re-type new password" className="form-control" />
-                </div>
-              </div>
+                <input
+                  type="checkbox"
+                  checked={twoFactor}
+                  onChange={(e) => setTwoFactor(e.target.checked)}
+                  style={{ width: '18px', height: '18px', accentColor: 'var(--color-accent)' }}
+                />
+              </label>
             </div>
 
             <div className="form-actions">
               <button type="submit" className="btn btn-primary">
-                Update Security Credentials
+                {t('common.save')}
               </button>
             </div>
           </form>
@@ -355,8 +411,25 @@ export const Settings = ({ onSaveFeedback }) => {
         {activeSection === 'preferences' && (
           <form onSubmit={handleSave}>
             <div className="form-grid-2">
+              <div className="form-group full-width">
+                <label className="form-label">{t('settings.languageLabel')}</label>
+                <select
+                  className="form-control"
+                  value={i18n.language || 'en'}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: 'var(--text-main)',
+                  }}
+                >
+                  <option value="en" style={{ background: '#ffffff', color: '#0f172a' }}>🇬🇧 English</option>
+                  <option value="hi" style={{ background: '#ffffff', color: '#0f172a' }}>🇮🇳 हिन्दी (Hindi)</option>
+                  <option value="gu" style={{ background: '#ffffff', color: '#0f172a' }}>🇮🇳 ગુજરાતી (Gujarati)</option>
+                </select>
+              </div>
+
               <div className="form-group">
-                <label className="form-label">Date Format</label>
+                <label className="form-label">{t('settings.dateFormat')}</label>
                 <select
                   className="form-control"
                   value={preferences.dateFormat}
@@ -369,21 +442,21 @@ export const Settings = ({ onSaveFeedback }) => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Fiscal Currency</label>
+                <label className="form-label">{t('settings.currency')}</label>
                 <select
                   className="form-control"
                   value={preferences.currency}
                   onChange={(e) => setPreferences({ ...preferences, currency: e.target.value })}
                 >
                   <option value="USD ($)">USD ($) - United States Dollar</option>
+                  <option value="INR (₹)">INR (₹) - Indian Rupee</option>
                   <option value="EUR (€)">EUR (€) - Euro</option>
                   <option value="GBP (£)">GBP (£) - British Pound</option>
-                  <option value="CAD ($)">CAD ($) - Canadian Dollar</option>
                 </select>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Engineering Unit System</label>
+                <label className="form-label">{t('settings.unitSystem')}</label>
                 <select
                   className="form-control"
                   value={preferences.unitSystem}
@@ -395,20 +468,20 @@ export const Settings = ({ onSaveFeedback }) => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Interface Theme</label>
+                <label className="form-label">{t('settings.interfaceTheme')}</label>
                 <select
                   className="form-control"
                   value={preferences.theme}
                   onChange={(e) => setPreferences({ ...preferences, theme: e.target.value })}
                 >
-                  <option value="Light Clean SaaS">B2B SaaS Professional (Neutral Light)</option>
+                  <option value="Light Clean SaaS">B2B SaaS Professional (Dark Cyan Glow)</option>
                 </select>
               </div>
             </div>
 
             <div className="form-actions">
               <button type="submit" className="btn btn-primary">
-                Save Preferences
+                {t('settings.savePreferences')}
               </button>
             </div>
           </form>

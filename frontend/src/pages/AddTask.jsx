@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const AddTask = ({ projects = [], onAddTask, onNavigate }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     project: projects[0]?.name || 'Residential Tower A',
@@ -30,7 +32,7 @@ export const AddTask = ({ projects = [], onAddTask, onNavigate }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      alert('Task name is required.');
+      alert(t('tasks.titleRequired'));
       return;
     }
 
@@ -56,8 +58,8 @@ export const AddTask = ({ projects = [], onAddTask, onNavigate }) => {
     <div className="page-container">
       <div className="page-header-row">
         <div className="page-header-titles">
-          <h1>Add Task</h1>
-          <p>Assign new site tasks, milestones, and contractor work orders.</p>
+          <h1>{t('tasks.formTitle')}</h1>
+          <p>{t('tasks.formSubtitle')}</p>
         </div>
         <div className="page-header-actions">
           <button
@@ -65,7 +67,7 @@ export const AddTask = ({ projects = [], onAddTask, onNavigate }) => {
             className="btn btn-secondary"
             onClick={() => onNavigate('tasks')}
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </div>
@@ -74,7 +76,7 @@ export const AddTask = ({ projects = [], onAddTask, onNavigate }) => {
         <form onSubmit={handleSubmit}>
           <div className="form-grid-2">
             <div className="form-group full-width">
-              <label className="form-label">Task Name *</label>
+              <label className="form-label">{t('tasks.taskTitle')} *</label>
               <input
                 type="text"
                 name="name"
@@ -87,7 +89,7 @@ export const AddTask = ({ projects = [], onAddTask, onNavigate }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Project *</label>
+              <label className="form-label">{t('navigation.projects')} *</label>
               <select
                 name="project"
                 className="form-control"
@@ -104,7 +106,7 @@ export const AddTask = ({ projects = [], onAddTask, onNavigate }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Assigned To</label>
+              <label className="form-label">{t('tasks.assignee')}</label>
               <input
                 type="text"
                 name="assignedTo"
@@ -116,22 +118,22 @@ export const AddTask = ({ projects = [], onAddTask, onNavigate }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Priority</label>
+              <label className="form-label">{t('common.priority')}</label>
               <select
                 name="priority"
                 className="form-control"
                 value={formData.priority}
                 onChange={handleChange}
               >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-                <option value="Critical">Critical</option>
+                <option value="Low">{t('status.low')}</option>
+                <option value="Medium">{t('status.medium')}</option>
+                <option value="High">{t('status.high')}</option>
+                <option value="Critical">{t('status.critical')}</option>
               </select>
             </div>
 
             <div className="form-group">
-              <label className="form-label">Initial Progress (%)</label>
+              <label className="form-label">{t('tasks.progress')}</label>
               <input
                 type="number"
                 name="progress"
@@ -144,7 +146,7 @@ export const AddTask = ({ projects = [], onAddTask, onNavigate }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Start Date</label>
+              <label className="form-label">{t('tasks.startDate')}</label>
               <input
                 type="date"
                 name="startDate"
@@ -155,7 +157,7 @@ export const AddTask = ({ projects = [], onAddTask, onNavigate }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Due Date</label>
+              <label className="form-label">{t('tasks.dueDate')}</label>
               <input
                 type="date"
                 name="dueDate"
@@ -166,7 +168,7 @@ export const AddTask = ({ projects = [], onAddTask, onNavigate }) => {
             </div>
 
             <div className="form-group full-width">
-              <label className="form-label">Description & Work Specs</label>
+              <label className="form-label">{t('tasks.description')}</label>
               <textarea
                 name="description"
                 className="form-control"
@@ -184,10 +186,10 @@ export const AddTask = ({ projects = [], onAddTask, onNavigate }) => {
               className="btn btn-secondary"
               onClick={() => onNavigate('tasks')}
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary">
-              Create Task
+              {t('tasks.createTaskBtn')}
             </button>
           </div>
         </form>

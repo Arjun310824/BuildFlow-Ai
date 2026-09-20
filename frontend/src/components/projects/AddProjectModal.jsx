@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconX } from '../common/Icons';
 
 export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
+  const { t } = useTranslation();
+
   const initialFormState = {
     name: '',
     clientName: '',
@@ -22,25 +25,25 @@ export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
   const validate = () => {
     const errs = {};
 
-    if (!formData.name.trim()) errs.name = 'Project name is required';
-    if (!formData.clientName.trim()) errs.clientName = 'Client name is required';
-    if (!formData.location.trim()) errs.location = 'Site location is required';
-    if (!formData.projectManager.trim()) errs.projectManager = 'Project manager is required';
-    if (!formData.startDate) errs.startDate = 'Start date is required';
-    if (!formData.expectedEndDate) errs.expectedEndDate = 'Expected end date is required';
+    if (!formData.name.trim()) errs.name = t('projects.nameRequired');
+    if (!formData.clientName.trim()) errs.clientName = t('projects.clientRequired');
+    if (!formData.location.trim()) errs.location = t('projects.locationRequired');
+    if (!formData.projectManager.trim()) errs.projectManager = t('projects.managerRequired');
+    if (!formData.startDate) errs.startDate = t('projects.startDateRequired');
+    if (!formData.expectedEndDate) errs.expectedEndDate = t('projects.endDateRequired');
 
     if (formData.progress === '' || formData.progress === undefined || formData.progress === null) {
-      errs.progress = 'Progress is required (0 - 100%)';
+      errs.progress = t('projects.progressError');
     } else {
       const progressNum = Number(formData.progress);
       if (isNaN(progressNum) || progressNum < 0 || progressNum > 100) {
-        errs.progress = 'Progress must be between 0 and 100%';
+        errs.progress = t('projects.progressError');
       }
     }
 
     if (formData.startDate && formData.expectedEndDate) {
       if (new Date(formData.expectedEndDate) < new Date(formData.startDate)) {
-        errs.expectedEndDate = 'Expected end date cannot be earlier than start date';
+        errs.expectedEndDate = t('projects.dateOrderError');
       }
     }
 
@@ -89,8 +92,8 @@ export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
         {/* Modal Header */}
         <div className="modal-header">
           <div>
-            <h2 className="modal-title">Add Construction Project</h2>
-            <p className="modal-subtitle">Initialize a new project site record in BuildFlow AI</p>
+            <h2 className="modal-title">{t('projects.formTitle')}</h2>
+            <p className="modal-subtitle">{t('projects.formSubtitle')}</p>
           </div>
           <button className="modal-close-btn" onClick={onClose} aria-label="Close modal">
             <IconX size={20} />
@@ -103,7 +106,7 @@ export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
             {/* Project Name */}
             <div className="form-group full-width">
               <label htmlFor="projectName" className="form-label">
-                Project Name <span className="req-star">*</span>
+                {t('projects.projectName')} <span className="req-star">*</span>
               </label>
               <input
                 id="projectName"
@@ -120,7 +123,7 @@ export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
             {/* Client Name */}
             <div className="form-group">
               <label htmlFor="clientName" className="form-label">
-                Client / Owner Name <span className="req-star">*</span>
+                {t('projects.clientName')} <span className="req-star">*</span>
               </label>
               <input
                 id="clientName"
@@ -137,7 +140,7 @@ export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
             {/* Project Manager */}
             <div className="form-group">
               <label htmlFor="projectManager" className="form-label">
-                Project Manager <span className="req-star">*</span>
+                {t('projects.projectManager')} <span className="req-star">*</span>
               </label>
               <input
                 id="projectManager"
@@ -154,7 +157,7 @@ export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
             {/* Location */}
             <div className="form-group full-width">
               <label htmlFor="location" className="form-label">
-                Site Location <span className="req-star">*</span>
+                {t('projects.siteLocation')} <span className="req-star">*</span>
               </label>
               <input
                 id="location"
@@ -171,7 +174,7 @@ export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
             {/* Start Date */}
             <div className="form-group">
               <label htmlFor="startDate" className="form-label">
-                Start Date <span className="req-star">*</span>
+                {t('projects.startDate')} <span className="req-star">*</span>
               </label>
               <input
                 id="startDate"
@@ -187,7 +190,7 @@ export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
             {/* Expected End Date */}
             <div className="form-group">
               <label htmlFor="expectedEndDate" className="form-label">
-                Expected End Date <span className="req-star">*</span>
+                {t('projects.expectedEndDate')} <span className="req-star">*</span>
               </label>
               <input
                 id="expectedEndDate"
@@ -205,7 +208,7 @@ export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
             {/* Status */}
             <div className="form-group">
               <label htmlFor="status" className="form-label">
-                Project Status <span className="req-star">*</span>
+                {t('common.status')} <span className="req-star">*</span>
               </label>
               <select
                 id="status"
@@ -214,17 +217,17 @@ export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
                 onChange={handleChange}
                 className="form-select"
               >
-                <option value="Planning">Planning</option>
-                <option value="In Progress">In Progress</option>
-                <option value="On Hold">On Hold</option>
-                <option value="Completed">Completed</option>
+                <option value="Planning">{t('status.planning')}</option>
+                <option value="In Progress">{t('status.inProgress')}</option>
+                <option value="On Hold">{t('status.onHold')}</option>
+                <option value="Completed">{t('status.completed')}</option>
               </select>
             </div>
 
             {/* Risk Level */}
             <div className="form-group">
               <label htmlFor="riskLevel" className="form-label">
-                Risk Level <span className="req-star">*</span>
+                {t('projects.riskLevel')} <span className="req-star">*</span>
               </label>
               <select
                 id="riskLevel"
@@ -233,16 +236,16 @@ export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
                 onChange={handleChange}
                 className="form-select"
               >
-                <option value="Low">Low Risk</option>
-                <option value="Medium">Medium Risk</option>
-                <option value="High">High Risk</option>
+                <option value="Low">{t('status.low')} {t('projects.riskLevel')}</option>
+                <option value="Medium">{t('status.medium')} {t('projects.riskLevel')}</option>
+                <option value="High">{t('status.high')} {t('projects.riskLevel')}</option>
               </select>
             </div>
 
             {/* Progress % */}
             <div className="form-group full-width">
               <label htmlFor="progress" className="form-label">
-                Initial Progress (%): <strong>{formData.progress || 0}%</strong>
+                {t('projects.progressLabel')} <strong>{formData.progress || 0}%</strong>
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <input
@@ -273,10 +276,10 @@ export const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
           {/* Modal Actions */}
           <div className="modal-actions">
             <button type="button" className="btn btn-outline" onClick={onClose}>
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary">
-              Create Project
+              {t('projects.createProjectBtn')}
             </button>
           </div>
         </form>

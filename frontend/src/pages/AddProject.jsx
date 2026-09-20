@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const AddProject = ({ onAddProject, onNavigate }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -22,7 +24,7 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.code.trim()) {
-      alert('Please fill in required fields: Project Name and Project Code');
+      alert(`${t('projects.nameRequired')} & Code`);
       return;
     }
 
@@ -54,8 +56,8 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
     <div className="page-container">
       <div className="page-header-row">
         <div className="page-header-titles">
-          <h1>Add Project</h1>
-          <p>Create a new construction project and set baseline parameters.</p>
+          <h1>{t('projects.formTitle')}</h1>
+          <p>{t('projects.formSubtitle')}</p>
         </div>
         <div className="page-header-actions">
           <button
@@ -63,7 +65,7 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
             className="btn btn-secondary"
             onClick={() => onNavigate('projects')}
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </div>
@@ -72,7 +74,7 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
         <form onSubmit={handleSubmit}>
           <div className="form-grid-2">
             <div className="form-group">
-              <label className="form-label">Project Name *</label>
+              <label className="form-label">{t('projects.projectName')} *</label>
               <input
                 type="text"
                 name="name"
@@ -85,7 +87,7 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Project Code *</label>
+              <label className="form-label">{t('projects.projectCode')} *</label>
               <input
                 type="text"
                 name="code"
@@ -98,7 +100,7 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Location</label>
+              <label className="form-label">{t('common.location')}</label>
               <input
                 type="text"
                 name="location"
@@ -110,7 +112,7 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Client</label>
+              <label className="form-label">{t('projects.clientName')}</label>
               <input
                 type="text"
                 name="client"
@@ -122,7 +124,7 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Project Manager</label>
+              <label className="form-label">{t('projects.projectManager')}</label>
               <input
                 type="text"
                 name="manager"
@@ -134,7 +136,7 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Asset Category</label>
+              <label className="form-label">{t('materials.category')}</label>
               <select
                 name="category"
                 className="form-control"
@@ -151,7 +153,7 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Start Date</label>
+              <label className="form-label">{t('projects.startDate')}</label>
               <input
                 type="date"
                 name="startDate"
@@ -162,7 +164,7 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Expected Completion</label>
+              <label className="form-label">{t('projects.expectedEndDate')}</label>
               <input
                 type="date"
                 name="expectedCompletion"
@@ -173,7 +175,7 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
             </div>
 
             <div className="form-group full-width">
-              <label className="form-label">Budget ($ USD)</label>
+              <label className="form-label">{t('projects.budget')} ($ USD)</label>
               <input
                 type="text"
                 name="budget"
@@ -185,7 +187,7 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
             </div>
 
             <div className="form-group full-width">
-              <label className="form-label">Description</label>
+              <label className="form-label">{t('tasks.description')}</label>
               <textarea
                 name="description"
                 className="form-control"
@@ -203,10 +205,10 @@ export const AddProject = ({ onAddProject, onNavigate }) => {
               className="btn btn-secondary"
               onClick={() => onNavigate('projects')}
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary">
-              Create Project
+              {t('projects.createProjectBtn')}
             </button>
           </div>
         </form>

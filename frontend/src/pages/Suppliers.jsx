@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '../components/common/Badge';
 import {
   IconSearch,
@@ -11,6 +12,7 @@ export const Suppliers = ({
   suppliers = [],
   onAddSupplier,
 }) => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newSupplier, setNewSupplier] = useState({
@@ -57,13 +59,13 @@ export const Suppliers = ({
       {/* Header */}
       <div className="page-header-row">
         <div className="page-header-titles">
-          <h1>Suppliers</h1>
-          <p>Manage verified material vendors, trade subcontractors, and logistical delivery SLAs.</p>
+          <h1>{t('suppliers.title')}</h1>
+          <p>{t('suppliers.subtitle')}</p>
         </div>
         <div className="page-header-actions">
           <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
             <IconPlus size={16} />
-            <span>Add Supplier</span>
+            <span>{t('suppliers.addSupplier')}</span>
           </button>
         </div>
       </div>
@@ -75,14 +77,14 @@ export const Suppliers = ({
             <IconSearch size={16} color="var(--text-muted)" />
             <input
               type="text"
-              placeholder="Search Supplier, Material, Project..."
+              placeholder={t('suppliers.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
         <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-          Total Suppliers: <strong>{filteredSuppliers.length}</strong>
+          {t('common.showingOf', { count: filteredSuppliers.length, total: suppliers.length })}
         </div>
       </div>
 
@@ -91,143 +93,134 @@ export const Suppliers = ({
         <table className="data-table">
           <thead>
             <tr>
-              <th>Supplier Name</th>
-              <th>Materials</th>
-              <th>Contact</th>
-              <th>Active Projects</th>
-              <th>Delivery Status</th>
-              <th>Rating</th>
+              <th>{t('suppliers.supplierName')}</th>
+              <th>{t('suppliers.materialsSupplied')}</th>
+              <th>{t('suppliers.contactPerson')}</th>
+              <th>{t('suppliers.activeProjects')}</th>
+              <th>{t('suppliers.deliveryStatus')}</th>
+              <th>{t('suppliers.rating')}</th>
             </tr>
           </thead>
           <tbody>
-            {filteredSuppliers.map((sup) => {
-              const isDelayed = sup.deliveryStatus.toLowerCase().includes('delayed');
-
-              return (
-                <tr key={sup.id}>
+            {filteredSuppliers.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  {t('common.noData')}
+                </td>
+              </tr>
+            ) : (
+              filteredSuppliers.map((s) => (
+                <tr key={s.id}>
                   <td>
-                    <div className="table-cell-title">{sup.name}</div>
-                    <div className="table-cell-sub">{sup.email}</div>
+                    <div className="table-cell-title">{s.name}</div>
+                    <div className="table-cell-sub">{s.id}</div>
+                  </td>
+                  <td>{s.materials}</td>
+                  <td>
+                    <div>{s.contact}</div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{s.email}</div>
+                  </td>
+                  <td>{s.projects}</td>
+                  <td>
+                    <span className="badge badge-on-track">{s.deliveryStatus}</span>
                   </td>
                   <td>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-main)' }}>
-                      {sup.materials}
-                    </span>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                      {sup.contact}
-                    </span>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 500 }}>
-                      {sup.projects}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      className={`badge ${isDelayed ? 'badge-delayed' : 'badge-on-track'}`}
-                    >
-                      {sup.deliveryStatus}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
-                      <span style={{ color: 'var(--color-warning)' }}>★</span>
-                      <span>{sup.rating.toFixed(1)}</span>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 400 }}>
-                        / 5.0
-                      </span>
-                    </div>
+                    <span style={{ fontWeight: 600, color: 'var(--color-warning-text)' }}>★ {s.rating}</span>
                   </td>
                 </tr>
-              );
-            })}
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Add Supplier Modal */}
+      {/* Add Modal */}
       {isAddModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-backdrop" onClick={() => setIsAddModalOpen(false)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">Register New Vendor / Supplier</div>
+              <div>
+                <h2 className="modal-title">{t('suppliers.formTitle')}</h2>
+                <p className="modal-subtitle">{t('suppliers.formSubtitle')}</p>
+              </div>
               <button
                 className="modal-close-btn"
                 onClick={() => setIsAddModalOpen(false)}
+                aria-label="Close modal"
               >
-                <IconX />
+                <IconX size={20} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="modal-body">
-              <div className="form-group">
-                <label className="form-label">Supplier Name *</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Vulcan Steel Industries"
-                  value={newSupplier.name}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
-                  required
-                />
-              </div>
 
-              <div className="form-group">
-                <label className="form-label">Supplied Materials</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Grade 60 Rebar, Structural W-Beams"
-                  value={newSupplier.materials}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, materials: e.target.value })}
-                />
-              </div>
-
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Contact Person & Phone</label>
+            <form onSubmit={handleSubmit} className="modal-form">
+              <div className="form-grid">
+                <div className="form-group full-width">
+                  <label className="form-label">{t('suppliers.supplierName')} *</label>
                   <input
                     type="text"
-                    className="form-control"
-                    placeholder="e.g. Brenda Wu • (555) 345-6789"
+                    className="form-input"
+                    placeholder="e.g. Acme Cement & ReadyMix"
+                    value={newSupplier.name}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">{t('suppliers.materialsSupplied')}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Concrete, Cement Bags"
+                    value={newSupplier.materials}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, materials: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">{t('suppliers.contactPerson')}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. David Ross"
                     value={newSupplier.contact}
                     onChange={(e) => setNewSupplier({ ...newSupplier, contact: e.target.value })}
                   />
                 </div>
+
                 <div className="form-group">
-                  <label className="form-label">Email Address</label>
+                  <label className="form-label">{t('suppliers.email')}</label>
                   <input
                     type="email"
-                    className="form-control"
-                    placeholder="orders@supplier.com"
+                    className="form-input"
+                    placeholder="e.g. contact@acmecement.com"
                     value={newSupplier.email}
                     onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
                   />
                 </div>
+
+                <div className="form-group">
+                  <label className="form-label">{t('suppliers.activeProjects')}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Residential Tower A"
+                    value={newSupplier.projects}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, projects: e.target.value })}
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Assigned Projects</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Residential Tower A, Warehouse Project"
-                  value={newSupplier.projects}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, projects: e.target.value })}
-                />
-              </div>
-
-              <div className="form-actions">
+              <div className="modal-footer">
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => setIsAddModalOpen(false)}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Save Supplier
+                  {t('suppliers.addSupplier')}
                 </button>
               </div>
             </form>

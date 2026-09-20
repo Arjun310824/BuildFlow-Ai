@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ProgressBar } from '../components/common/ProgressBar';
 import {
   IconPlus,
@@ -14,10 +15,10 @@ export const SiteUpdates = ({
   projects = [],
   onAddUpdate,
 }) => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState('All');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null);
 
   const [newUpdate, setNewUpdate] = useState({
     project: projects[0]?.name || 'Residential Tower A',
@@ -76,13 +77,13 @@ export const SiteUpdates = ({
       {/* Header */}
       <div className="page-header-row">
         <div className="page-header-titles">
-          <h1>Site Updates</h1>
-          <p>Chronological daily construction logs, superintendent shift reports, and site photographic records.</p>
+          <h1>{t('siteUpdates.title')}</h1>
+          <p>{t('siteUpdates.subtitle')}</p>
         </div>
         <div className="page-header-actions">
           <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
             <IconPlus size={16} />
-            <span>Add Daily Update</span>
+            <span>{t('siteUpdates.addDailyUpdate')}</span>
           </button>
         </div>
       </div>
@@ -94,7 +95,7 @@ export const SiteUpdates = ({
             <IconSearch size={16} color="var(--text-muted)" />
             <input
               type="text"
-              placeholder="Search site log notes..."
+              placeholder={t('siteUpdates.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -105,7 +106,7 @@ export const SiteUpdates = ({
             value={selectedProject}
             onChange={(e) => setSelectedProject(e.target.value)}
           >
-            <option value="All">All Projects</option>
+            <option value="All">{t('tasks.allProjects')}</option>
             {projects.map((p) => (
               <option key={p.id} value={p.name}>
                 {p.name}
@@ -115,279 +116,174 @@ export const SiteUpdates = ({
         </div>
 
         <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-          Showing <strong>{filteredUpdates.length}</strong> site reports
+          {t('common.showingOf', { count: filteredUpdates.length, total: siteUpdates.length })}
         </div>
       </div>
 
-      {/* Timeline Layout */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
-        {filteredUpdates.map((update, idx) => (
-          <div
-            key={update.id}
-            className="card"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '180px 1fr auto',
-              gap: '24px',
-              alignItems: 'flex-start',
-              position: 'relative',
-            }}
-          >
-            {/* Timeline Meta */}
-            <div style={{ borderRight: '1px solid var(--border-light)', paddingRight: '16px' }}>
-              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                {update.date}
-              </div>
-              <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                {update.time || '16:30'}
-              </div>
-              <span className="badge badge-neutral" style={{ fontSize: '0.72rem' }}>
-                {update.weather || 'Normal Conditions'}
-              </span>
-            </div>
-
-            {/* Core Content */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>
-                  {update.project}
-                </span>
-                <span className="badge badge-info">Shift Completed</span>
+      {/* Updates Stream */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {filteredUpdates.length === 0 ? (
+          <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+            {t('common.noData')}
+          </div>
+        ) : (
+          filteredUpdates.map((upd) => (
+            <div key={upd.id} className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '3px' }}>
+                    {upd.project}
+                  </h3>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    {upd.date} • {upd.time}
+                  </span>
+                </div>
+                <span className="badge badge-info">{upd.weather}</span>
               </div>
 
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: '1.5', marginBottom: '14px' }}>
-                {update.workCompleted}
+              <p style={{ fontSize: '0.86rem', color: 'var(--text-main)', lineHeight: '1.5', marginBottom: '12px' }}>
+                {upd.workCompleted}
               </p>
 
-              {/* Progress & Workers Strip */}
-              <div style={{ display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '14px' }}>
-                <div style={{ width: '180px' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                    Milestone Progress
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingTop: '10px',
+                  borderTop: '1px solid var(--border-light)',
+                  fontSize: '0.8rem',
+                  color: 'var(--text-muted)',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                }}
+              >
+                <div>
+                  {t('dashboard.workersOnSite')} <strong>{upd.workers}</strong> | {t('siteUpdates.supervisor')}: <strong>{upd.supervisor}</strong>
+                </div>
+                {upd.issues && (
+                  <div style={{ color: 'var(--color-warning-text)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <IconAlertTriangle size={14} color="var(--color-warning)" />
+                    <span>{upd.issues}</span>
                   </div>
-                  <ProgressBar progress={update.progress} height={6} />
-                </div>
-
-                <div>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Workers on Site</span>
-                  <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-main)' }}>
-                    👷 {update.workers} Active Personnel
-                  </span>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Supervisor</span>
-                  <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-main)' }}>
-                    {update.supervisor || 'Alex Morgan'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Issues Alert Box */}
-              {update.issues && (
-                <div
-                  style={{
-                    background: 'var(--color-warning-bg)',
-                    border: '1px solid var(--color-warning-border)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '10px 14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '0.84rem',
-                    color: 'var(--color-warning-text)',
-                  }}
-                >
-                  <IconAlertTriangle size={16} color="var(--color-warning)" />
-                  <span>
-                    <strong>Issue Logged:</strong> {update.issues}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Photo / Visual Inspection Thumbnail Preview */}
-            <div style={{ width: '130px', flexShrink: 0 }}>
-              <div
-                style={{
-                  width: '130px',
-                  height: '95px',
-                  borderRadius: 'var(--radius-md)',
-                  background: '#f1f5f9',
-                  border: '1px solid var(--border-color)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  overflow: 'hidden',
-                  position: 'relative',
-                }}
-                onClick={() =>
-                  setPreviewImage({
-                    title: `${update.project} Inspection Photo`,
-                    caption: update.workCompleted,
-                    date: update.date,
-                  })
-                }
-              >
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    background: 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <span style={{ fontSize: '1.4rem' }}>🏗️</span>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                    Site Photo
-                  </span>
-                </div>
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: '4px',
-                    fontSize: '0.65rem',
-                    background: 'rgba(15,23,42,0.7)',
-                    color: '#ffffff',
-                    padding: '1px 6px',
-                    borderRadius: 'var(--radius-xs)',
-                  }}
-                >
-                  Click to View
-                </div>
+                )}
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
-      {/* Image Preview Modal */}
-      {previewImage && (
-        <div className="modal-overlay" onClick={() => setPreviewImage(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
-            <div className="modal-header">
-              <div className="modal-title">{previewImage.title}</div>
-              <button className="modal-close-btn" onClick={() => setPreviewImage(null)}>
-                <IconX />
-              </button>
-            </div>
-            <div className="modal-body" style={{ textAlign: 'center' }}>
-              <div
-                style={{
-                  height: '280px',
-                  background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                  borderRadius: 'var(--radius-lg)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                  gap: '12px',
-                  marginBottom: '16px',
-                }}
-              >
-                <span style={{ fontSize: '3rem' }}>🏗️</span>
-                <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>High-Resolution Site Survey Capture</div>
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Verified by Field QC Drone & On-Site Supervisor</div>
-              </div>
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-main)', textAlign: 'left' }}>
-                {previewImage.caption}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Daily Update Modal */}
+      {/* Add Modal */}
       {isAddModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-backdrop" onClick={() => setIsAddModalOpen(false)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">Record Daily Site Progress</div>
-              <button className="modal-close-btn" onClick={() => setIsAddModalOpen(false)}>
-                <IconX />
+              <div>
+                <h2 className="modal-title">{t('siteUpdates.formTitle')}</h2>
+                <p className="modal-subtitle">{t('siteUpdates.formSubtitle')}</p>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => setIsAddModalOpen(false)}
+                aria-label="Close modal"
+              >
+                <IconX size={20} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="modal-body">
-              <div className="form-group">
-                <label className="form-label">Project *</label>
-                <select
-                  className="form-control"
-                  value={newUpdate.project}
-                  onChange={(e) => setNewUpdate({ ...newUpdate, project: e.target.value })}
-                >
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.name}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
 
-              <div className="form-group">
-                <label className="form-label">Work Completed Summary *</label>
-                <textarea
-                  className="form-control"
-                  rows={3}
-                  placeholder="e.g. Concrete pour for basement level 2 completed with test cube samples taken..."
-                  value={newUpdate.workCompleted}
-                  onChange={(e) => setNewUpdate({ ...newUpdate, workCompleted: e.target.value })}
-                  required
-                />
-              </div>
+            <form onSubmit={handleSubmit} className="modal-form">
+              <div className="form-grid">
+                <div className="form-group full-width">
+                  <label className="form-label">{t('navigation.projects')} *</label>
+                  <select
+                    className="form-input"
+                    value={newUpdate.project}
+                    onChange={(e) => setNewUpdate({ ...newUpdate, project: e.target.value })}
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.name}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="form-grid-2">
                 <div className="form-group">
-                  <label className="form-label">Workers on Site</label>
+                  <label className="form-label">{t('siteUpdates.weather')}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={newUpdate.weather}
+                    onChange={(e) => setNewUpdate({ ...newUpdate, weather: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">{t('siteUpdates.workforce')}</label>
                   <input
                     type="number"
-                    className="form-control"
-                    placeholder="32"
+                    className="form-input"
                     value={newUpdate.workers}
                     onChange={(e) => setNewUpdate({ ...newUpdate, workers: e.target.value })}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Milestone Progress (%)</label>
+                  <label className="form-label">{t('siteUpdates.supervisor')}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={newUpdate.supervisor}
+                    onChange={(e) => setNewUpdate({ ...newUpdate, supervisor: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">{t('common.progress')} (%)</label>
                   <input
                     type="number"
-                    className="form-control"
                     min="0"
                     max="100"
+                    className="form-input"
                     value={newUpdate.progress}
                     onChange={(e) => setNewUpdate({ ...newUpdate, progress: e.target.value })}
                   />
                 </div>
+
+                <div className="form-group full-width">
+                  <label className="form-label">{t('siteUpdates.workCompleted')} *</label>
+                  <textarea
+                    className="form-input"
+                    rows={3}
+                    placeholder="Describe specific structural or finishing tasks executed during shift..."
+                    value={newUpdate.workCompleted}
+                    onChange={(e) => setNewUpdate({ ...newUpdate, workCompleted: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group full-width">
+                  <label className="form-label">{t('siteUpdates.issues')}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Concrete pump breakdown delayed pour by 2 hours"
+                    value={newUpdate.issues}
+                    onChange={(e) => setNewUpdate({ ...newUpdate, issues: e.target.value })}
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Delays or Issues Encountered (Optional)</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Heavy rain caused a 4-hour delay in morning shift."
-                  value={newUpdate.issues}
-                  onChange={(e) => setNewUpdate({ ...newUpdate, issues: e.target.value })}
-                />
-              </div>
-
-              <div className="form-actions">
+              <div className="modal-footer">
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => setIsAddModalOpen(false)}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Submit Site Log
+                  {t('common.submit')}
                 </button>
               </div>
             </form>

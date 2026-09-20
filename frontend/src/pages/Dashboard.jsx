@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StatCard } from '../components/common/MetricCard';
 import { StatusBadge } from '../components/common/Badge';
 import { ProgressBar } from '../components/common/ProgressBar';
@@ -8,7 +9,6 @@ import {
   IconCheck,
   IconAlertTriangle,
   IconTrendingUp,
-  IconArrowUpRight,
 } from '../components/common/Icons';
 
 export const Dashboard = ({
@@ -19,6 +19,8 @@ export const Dashboard = ({
   onNavigate,
   onSelectProject,
 }) => {
+  const { t } = useTranslation();
+
   // Compute Top Statistics Cards
   const totalProjects = projects.length || 8;
   const activeProjects = projects.filter((p) => ['On Track', 'At Risk', 'In Progress'].includes(p.status)).length || 5;
@@ -37,15 +39,15 @@ export const Dashboard = ({
       {/* Header */}
       <div className="page-header-row">
         <div className="page-header-titles">
-          <h1>Good morning, Alex</h1>
-          <p>Here's what's happening across your projects.</p>
+          <h1>{t('dashboard.greeting')}</h1>
+          <p>{t('dashboard.subtitle')}</p>
         </div>
         <div className="page-header-actions">
           <button className="btn btn-secondary" onClick={() => onNavigate('reports')}>
-            View Reports
+            {t('dashboard.viewReports')}
           </button>
           <button className="btn btn-primary" onClick={() => onNavigate('add-project')}>
-            + Add Project
+            {t('dashboard.addProject')}
           </button>
         </div>
       </div>
@@ -53,30 +55,30 @@ export const Dashboard = ({
       {/* Top Statistics Cards */}
       <div className="stats-grid-4">
         <StatCard
-          label="Total Projects"
+          label={t('dashboard.totalProjects')}
           value={totalProjects}
-          subtext="+2 added this quarter"
+          subtext={t('dashboard.totalProjectsSub')}
           icon={<IconProjects size={18} />}
           trendType="neutral"
         />
         <StatCard
-          label="Active Projects"
+          label={t('dashboard.activeProjects')}
           value={activeProjects}
-          subtext="Currently under construction"
+          subtext={t('dashboard.activeProjectsSub')}
           icon={<IconTrendingUp size={18} />}
           trendType="positive"
         />
         <StatCard
-          label="Completed"
+          label={t('dashboard.completed')}
           value={completedProjects}
-          subtext="Delivered on schedule"
+          subtext={t('dashboard.completedSub')}
           icon={<IconCheck size={18} />}
           trendType="positive"
         />
         <StatCard
-          label="Delayed"
+          label={t('dashboard.delayed')}
           value={delayedProjects}
-          subtext="Critical schedule variance"
+          subtext={t('dashboard.delayedSub')}
           icon={<IconAlertTriangle size={18} />}
           trendType="negative"
         />
@@ -88,10 +90,10 @@ export const Dashboard = ({
         <div className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Project Progress</div>
-              <div className="card-subtitle">Scheduled vs Actual completion across core assets</div>
+              <div className="card-title">{t('dashboard.projectProgress')}</div>
+              <div className="card-subtitle">{t('dashboard.projectProgressSub')}</div>
             </div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Updated 2h ago</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('dashboard.updatedAgo')}</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
@@ -99,7 +101,7 @@ export const Dashboard = ({
               <div key={prj.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem' }}>
                   <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{prj.name}</span>
-                  <span style={{ color: 'var(--text-muted)' }}>{prj.progress}% Completed</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{prj.progress}% {t('status.completed')}</span>
                 </div>
                 <ProgressBar progress={prj.progress} showLabel={false} height={8} />
               </div>
@@ -111,8 +113,8 @@ export const Dashboard = ({
         <div className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Project Health</div>
-              <div className="card-subtitle">Portfolio operational condition</div>
+              <div className="card-title">{t('dashboard.projectHealth')}</div>
+              <div className="card-subtitle">{t('dashboard.projectHealthSub')}</div>
             </div>
           </div>
 
@@ -130,10 +132,10 @@ export const Dashboard = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ color: 'var(--color-success)', fontSize: '10px' }}>●</span>
-                <span style={{ fontWeight: 600, color: 'var(--color-success-text)' }}>On Track</span>
+                <span style={{ fontWeight: 600, color: 'var(--color-success-text)' }}>{t('status.onTrack')}</span>
               </div>
               <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--color-success-text)' }}>
-                {onTrackCount} Projects
+                {onTrackCount} {t('navigation.projects')}
               </span>
             </div>
 
@@ -150,10 +152,10 @@ export const Dashboard = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ color: 'var(--color-warning)', fontSize: '10px' }}>●</span>
-                <span style={{ fontWeight: 600, color: 'var(--color-warning-text)' }}>At Risk</span>
+                <span style={{ fontWeight: 600, color: 'var(--color-warning-text)' }}>{t('status.atRisk')}</span>
               </div>
               <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--color-warning-text)' }}>
-                {atRiskCount} Projects
+                {atRiskCount} {t('navigation.projects')}
               </span>
             </div>
 
@@ -170,10 +172,10 @@ export const Dashboard = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ color: 'var(--color-danger)', fontSize: '10px' }}>●</span>
-                <span style={{ fontWeight: 600, color: 'var(--color-danger-text)' }}>Delayed</span>
+                <span style={{ fontWeight: 600, color: 'var(--color-danger-text)' }}>{t('status.delayed')}</span>
               </div>
               <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--color-danger-text)' }}>
-                {delayedCount} Projects
+                {delayedCount} {t('navigation.projects')}
               </span>
             </div>
           </div>
@@ -184,14 +186,14 @@ export const Dashboard = ({
       <div style={{ marginBottom: '28px' }}>
         <div className="card-header" style={{ marginBottom: '14px' }}>
           <div>
-            <div className="card-title">Active Projects</div>
-            <div className="card-subtitle">Key metrics and milestone status across primary sites</div>
+            <div className="card-title">{t('dashboard.activeProjectsTitle')}</div>
+            <div className="card-subtitle">{t('dashboard.activeProjectsSubTitle')}</div>
           </div>
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => onNavigate('projects')}
           >
-            View All Projects
+            {t('dashboard.viewAllProjects')}
           </button>
         </div>
 
@@ -199,12 +201,12 @@ export const Dashboard = ({
           <table className="data-table">
             <thead>
               <tr>
-                <th>Project</th>
-                <th>Location</th>
-                <th>Manager</th>
-                <th style={{ width: '180px' }}>Progress</th>
-                <th>Status</th>
-                <th>Deadline</th>
+                <th>{t('navigation.projects')}</th>
+                <th>{t('common.location')}</th>
+                <th>{t('common.manager')}</th>
+                <th style={{ width: '180px' }}>{t('common.progress')}</th>
+                <th>{t('common.status')}</th>
+                <th>{t('common.due')}</th>
               </tr>
             </thead>
             <tbody>
@@ -244,9 +246,9 @@ export const Dashboard = ({
         <div className="card-header" style={{ marginBottom: '12px' }}>
           <div>
             <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ color: 'var(--color-warning)' }}>⚠️</span> Attention Required
+              <span style={{ color: 'var(--color-warning)' }}>⚠️</span> {t('dashboard.attentionRequired')}
             </div>
-            <div className="card-subtitle">Urgent trade dependencies and inventory alerts</div>
+            <div className="card-subtitle">{t('dashboard.attentionRequiredSub')}</div>
           </div>
         </div>
 
@@ -263,14 +265,14 @@ export const Dashboard = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
               <span style={{ fontSize: '1rem' }}>⚠️</span>
               <span style={{ fontWeight: 700, color: 'var(--color-danger-text)', fontSize: '0.9rem' }}>
-                3 Tasks overdue
+                {t('dashboard.tasksOverdue')}
               </span>
             </div>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-              Foundation slab pour, fire line hydrostatic tests, and drywall framing are past target completion.
+              {t('dashboard.tasksOverdueDesc')}
             </p>
             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-accent)' }}>
-              Resolve Tasks →
+              {t('dashboard.resolveTasks')}
             </span>
           </div>
 
@@ -286,14 +288,14 @@ export const Dashboard = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
               <span style={{ fontSize: '1rem' }}>⚠️</span>
               <span style={{ fontWeight: 700, color: 'var(--color-warning-text)', fontSize: '0.9rem' }}>
-                Cement stock is low
+                {t('dashboard.cementStockLow')}
               </span>
             </div>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-              Residential Tower A has 80 bags remaining against 500 bags required. Projected stockout in 36 hours.
+              {t('dashboard.cementStockLowDesc')}
             </p>
             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-accent)' }}>
-              Order Inventory →
+              {t('dashboard.orderInventory')}
             </span>
           </div>
 
@@ -312,14 +314,14 @@ export const Dashboard = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
               <span style={{ fontSize: '1rem' }}>⚠️</span>
               <span style={{ fontWeight: 700, color: 'var(--color-danger-text)', fontSize: '0.9rem' }}>
-                Project Tower A is behind schedule
+                {t('dashboard.towerABehind')}
               </span>
             </div>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-              Schedule variance is at -13% due to weather delays and trade handoffs. Gemini AI recommends rebalancing.
+              {t('dashboard.towerABehindDesc')}
             </p>
             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-accent)' }}>
-              View Project Details →
+              {t('dashboard.viewProjectDetails')}
             </span>
           </div>
         </div>
@@ -329,11 +331,11 @@ export const Dashboard = ({
       <div>
         <div className="card-header" style={{ marginBottom: '12px' }}>
           <div>
-            <div className="card-title">Recent Site Updates</div>
-            <div className="card-subtitle">Daily progress logs and field inspection notes from superintendents</div>
+            <div className="card-title">{t('dashboard.recentSiteUpdates')}</div>
+            <div className="card-subtitle">{t('dashboard.recentSiteUpdatesSub')}</div>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('site-updates')}>
-            View All Updates
+            {t('dashboard.viewAllUpdates')}
           </button>
         </div>
 
@@ -362,7 +364,7 @@ export const Dashboard = ({
                   color: 'var(--text-muted)',
                 }}
               >
-                <span>Workers on site: <strong>{upd.workers}</strong></span>
+                <span>{t('dashboard.workersOnSite')} <strong>{upd.workers}</strong></span>
                 {upd.issues && (
                   <span style={{ color: 'var(--color-warning-text)', fontWeight: 500 }}>
                     ⚠️ {upd.issues}

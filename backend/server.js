@@ -14,6 +14,7 @@ import healthRoutes from './routes/healthRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import materialRoutes from './routes/materialRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -32,6 +33,7 @@ app.use('/api/health', healthRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/materials', materialRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Fallback for undefined routes (404)
 app.use(notFound);
@@ -46,6 +48,7 @@ app.listen(PORT, () => {
   console.log(`📁 Projects API available at: http://localhost:${PORT}/api/projects`);
   console.log(`📋 Tasks API available at: http://localhost:${PORT}/api/tasks`);
   console.log(`📦 Materials API available at: http://localhost:${PORT}/api/materials`);
+  console.log(`🧠 AI Intelligence Engine API available at: http://localhost:${PORT}/api/ai/analyze-project`);
 });
 
 export default app;

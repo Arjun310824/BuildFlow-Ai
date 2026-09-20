@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TypeBadge, StatusBadge } from '../components/common/Badge';
 import {
   IconSearch,
@@ -17,6 +18,7 @@ export const Documents = ({
   onDeleteDocument,
   onDownloadFeedback,
 }) => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [projectFilter, setProjectFilter] = useState('All');
@@ -72,13 +74,13 @@ export const Documents = ({
       {/* Header */}
       <div className="page-header-row">
         <div className="page-header-titles">
-          <h1>Documents</h1>
-          <p>Centralized digital blueprint repository, contractor submittals, QA certifications, and billing records.</p>
+          <h1>{t('documents.title')}</h1>
+          <p>{t('documents.subtitle')}</p>
         </div>
         <div className="page-header-actions">
           <button className="btn btn-primary" onClick={() => setIsUploadModalOpen(true)}>
             <IconPlus size={16} />
-            <span>Upload Document</span>
+            <span>{t('documents.uploadDoc')}</span>
           </button>
         </div>
       </div>
@@ -90,7 +92,7 @@ export const Documents = ({
             <IconSearch size={16} color="var(--text-muted)" />
             <input
               type="text"
-              placeholder="Search documents by name..."
+              placeholder={t('documents.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -101,9 +103,9 @@ export const Documents = ({
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
           >
-            {types.map((t) => (
-              <option key={t} value={t}>
-                {t === 'All' ? 'All Document Types' : t}
+            {types.map((tp) => (
+              <option key={tp} value={tp}>
+                {tp === 'All' ? t('documents.allCategories') : tp}
               </option>
             ))}
           </select>
@@ -113,7 +115,7 @@ export const Documents = ({
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
           >
-            <option value="All">All Projects</option>
+            <option value="All">{t('tasks.allProjects')}</option>
             {projects.map((p) => (
               <option key={p.id} value={p.name}>
                 {p.name}
@@ -123,7 +125,7 @@ export const Documents = ({
         </div>
 
         <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-          Showing <strong>{filteredDocs.length}</strong> of {documents.length} files
+          {t('common.showingOf', { count: filteredDocs.length, total: documents.length })}
         </div>
       </div>
 
@@ -132,20 +134,20 @@ export const Documents = ({
         <table className="data-table">
           <thead>
             <tr>
-              <th>Document Name</th>
-              <th>Type</th>
-              <th>Project</th>
-              <th>Uploaded By</th>
-              <th>Date</th>
-              <th>Size</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th>{t('documents.fileName')}</th>
+              <th>{t('documents.category')}</th>
+              <th>{t('navigation.projects')}</th>
+              <th>{t('documents.uploadedBy')}</th>
+              <th>{t('documents.uploadDate')}</th>
+              <th>{t('documents.fileSize')}</th>
+              <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
             {filteredDocs.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                  No documents found matching the filter criteria.
+                  {t('common.noData')}
                 </td>
               </tr>
             ) : (
@@ -174,22 +176,23 @@ export const Documents = ({
                       <button
                         className="btn btn-secondary btn-sm"
                         onClick={() => setPreviewDoc(doc)}
-                        title="Preview Document"
+                        title={t('common.viewDetails')}
                       >
                         <IconEye size={14} />
-                        <span>Preview</span>
+                        <span>{t('common.viewDetails')}</span>
                       </button>
                       <button
                         className="btn btn-secondary btn-sm"
                         onClick={() => onDownloadFeedback && onDownloadFeedback(doc.name)}
-                        title="Download Document"
+                        title={t('common.download')}
                       >
                         <IconDownload size={14} />
                       </button>
                       <button
-                        className="btn btn-danger-subtle btn-sm"
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: 'var(--color-danger)' }}
                         onClick={() => onDeleteDocument && onDeleteDocument(doc.id)}
-                        title="Delete Document"
+                        title={t('common.delete')}
                       >
                         <IconTrash size={14} />
                       </button>
@@ -202,133 +205,59 @@ export const Documents = ({
         </table>
       </div>
 
-      {/* Document Preview Modal */}
-      {previewDoc && (
-        <div className="modal-overlay" onClick={() => setPreviewDoc(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
-            <div className="modal-header">
-              <div className="modal-title">Document Inspection</div>
-              <button className="modal-close-btn" onClick={() => setPreviewDoc(null)}>
-                <IconX />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div
-                style={{
-                  background: 'var(--bg-subtle)',
-                  borderRadius: 'var(--radius-lg)',
-                  padding: '24px',
-                  border: '1px solid var(--border-color)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '12px',
-                  marginBottom: '18px',
-                }}
-              >
-                <span style={{ fontSize: '3rem' }}>📑</span>
-                <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>
-                  {previewDoc.name}
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <TypeBadge type={previewDoc.type} />
-                  <span className="badge badge-healthy">Digitally Verified</span>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.84rem' }}>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Associated Project:</span>
-                  <strong>{previewDoc.project}</strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Uploaded By:</span>
-                  <strong>{previewDoc.uploadedBy}</strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Submission Date:</span>
-                  <strong>{previewDoc.date}</strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>File Size:</span>
-                  <strong>{previewDoc.size}</strong>
-                </div>
-              </div>
-
-              <div className="form-actions" style={{ marginTop: '20px' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setPreviewDoc(null)}
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    onDownloadFeedback && onDownloadFeedback(previewDoc.name);
-                    setPreviewDoc(null);
-                  }}
-                >
-                  <IconDownload size={16} />
-                  <span>Download File</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Upload Document Modal */}
+      {/* Upload Modal */}
       {isUploadModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-backdrop" onClick={() => setIsUploadModalOpen(false)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">Upload Project Document</div>
-              <button className="modal-close-btn" onClick={() => setIsUploadModalOpen(false)}>
-                <IconX />
+              <div>
+                <h2 className="modal-title">{t('documents.formTitle')}</h2>
+                <p className="modal-subtitle">{t('documents.formSubtitle')}</p>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => setIsUploadModalOpen(false)}
+                aria-label="Close modal"
+              >
+                <IconX size={20} />
               </button>
             </div>
-            <form onSubmit={handleUpload} className="modal-body">
-              <div className="form-group">
-                <label className="form-label">Document Title *</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Tower_A_Structural_Rebar_Inspection.pdf"
-                  value={newDoc.name}
-                  onChange={(e) => setNewDoc({ ...newDoc, name: e.target.value })}
-                  required
-                />
-              </div>
 
-              <div className="form-grid-2">
+            <form onSubmit={handleUpload} className="modal-form">
+              <div className="form-grid">
+                <div className="form-group full-width">
+                  <label className="form-label">{t('documents.fileName')} *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Structural Rebar Layout Rev-4"
+                    value={newDoc.name}
+                    onChange={(e) => setNewDoc({ ...newDoc, name: e.target.value })}
+                    required
+                  />
+                </div>
+
                 <div className="form-group">
-                  <label className="form-label">Document Category</label>
+                  <label className="form-label">{t('documents.category')}</label>
                   <select
-                    className="form-control"
+                    className="form-input"
                     value={newDoc.type}
                     onChange={(e) => setNewDoc({ ...newDoc, type: e.target.value })}
                   >
-                    <option value="Contract">Contract</option>
-                    <option value="Invoice">Invoice</option>
-                    <option value="Drawing">Drawing / Blueprint</option>
-                    <option value="Report">Report</option>
-                    <option value="Certificate">Certificate / Sign-Off</option>
-                    <option value="Other">Other</option>
+                    {types.filter((tp) => tp !== 'All').map((tp) => (
+                      <option key={tp} value={tp}>
+                        {tp}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Associated Project</label>
+                  <label className="form-label">{t('navigation.projects')}</label>
                   <select
-                    className="form-control"
+                    className="form-input"
                     value={newDoc.project}
-                    onChange={(e) => {
-                      const prj = projects.find((p) => p.name === e.target.value);
-                      setNewDoc({ ...newDoc, project: e.target.value, projectId: prj ? prj.id : '' });
-                    }}
+                    onChange={(e) => setNewDoc({ ...newDoc, project: e.target.value })}
                   >
                     {projects.map((p) => (
                       <option key={p.id} value={p.name}>
@@ -339,40 +268,65 @@ export const Documents = ({
                 </div>
               </div>
 
-              {/* Upload Drop Zone Simulation */}
-              <div
-                style={{
-                  border: '2px dashed var(--border-color)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '24px',
-                  textAlign: 'center',
-                  background: 'var(--bg-subtle)',
-                  marginBottom: '16px',
-                  cursor: 'pointer',
-                }}
-              >
-                <span style={{ fontSize: '1.8rem', display: 'block', marginBottom: '6px' }}>📁</span>
-                <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                  Drag and drop files here, or click to browse
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
-                  Supports PDF, DWG, DXF, XLSX, PNG up to 50MB
-                </span>
-              </div>
-
-              <div className="form-actions">
+              <div className="modal-footer">
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => setIsUploadModalOpen(false)}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Upload Document
+                  {t('documents.uploadDoc')}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewDoc && (
+        <div className="modal-backdrop" onClick={() => setPreviewDoc(null)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <div>
+                <h2 className="modal-title">{previewDoc.name}</h2>
+                <p className="modal-subtitle">{previewDoc.project} • {previewDoc.size}</p>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => setPreviewDoc(null)}
+                aria-label="Close modal"
+              >
+                <IconX size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '24px', textAlign: 'center', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', margin: '16px' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '12px' }}>📄</div>
+              <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
+                {previewDoc.name}
+              </div>
+              <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                {t('documents.uploadedBy')} {previewDoc.uploadedBy} • {previewDoc.date}
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setPreviewDoc(null)}>
+                {t('common.close')}
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  onDownloadFeedback && onDownloadFeedback(previewDoc.name);
+                  setPreviewDoc(null);
+                }}
+              >
+                {t('common.download')}
+              </button>
+            </div>
           </div>
         </div>
       )}

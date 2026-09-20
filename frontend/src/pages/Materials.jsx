@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StatCard } from '../components/common/MetricCard';
 import { StatusBadge } from '../components/common/Badge';
 import {
@@ -6,7 +7,6 @@ import {
   IconPlus,
   IconMaterials,
   IconAlertTriangle,
-  IconCheck,
   IconX,
 } from '../components/common/Icons';
 
@@ -16,6 +16,7 @@ export const Materials = ({
   onAddMaterial,
   onReorder,
 }) => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [projectFilter, setProjectFilter] = useState('All');
@@ -30,8 +31,8 @@ export const Materials = ({
     supplier: 'Apex Ready-Mix & Materials',
   });
 
-  const lowStockCount = materials.filter((m) => m.status === 'LOW STOCK').length;
-  const outOfStockCount = materials.filter((m) => m.status === 'OUT OF STOCK').length;
+  const lowStockCount = materials.filter((m) => m.status?.toUpperCase() === 'LOW STOCK').length;
+  const outOfStockCount = materials.filter((m) => m.status?.toUpperCase() === 'OUT OF STOCK').length;
 
   const filteredMaterials = materials.filter((m) => {
     const matchesSearch =
@@ -55,7 +56,7 @@ export const Materials = ({
       available: modalData.available || '100 units',
       used: '0 units',
       supplier: modalData.supplier,
-      status: Number(modalData.available) === 0 ? 'OUT OF STOCK' : 'In Stock',
+      status: Number(modalData.available) === 0 ? 'Out of Stock' : 'In Stock',
       unitCost: '$50 / unit',
       totalValue: '$5,000',
     };
@@ -76,13 +77,13 @@ export const Materials = ({
       {/* Header */}
       <div className="page-header-row">
         <div className="page-header-titles">
-          <h1>Material Inventory</h1>
-          <p>Real-time site material stockpiles, procurement thresholds, and shortage warnings.</p>
+          <h1>{t('materials.title')}</h1>
+          <p>{t('materials.subtitle')}</p>
         </div>
         <div className="page-header-actions">
           <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
             <IconPlus size={16} />
-            <span>Add Material</span>
+            <span>{t('materials.addMaterial')}</span>
           </button>
         </div>
       </div>
@@ -90,27 +91,27 @@ export const Materials = ({
       {/* Statistics Cards */}
       <div className="stats-grid-4">
         <StatCard
-          label="Total Materials"
+          label={t('materials.totalMaterials')}
           value={materials.length}
           subtext="Catalogued inventory items"
           icon={<IconMaterials size={18} />}
         />
         <StatCard
-          label="Low Stock"
+          label={t('materials.lowStock')}
           value={lowStockCount}
           subtext="Stockpile below 25% quota"
           icon={<IconAlertTriangle size={18} color="var(--color-warning)" />}
           trendType="negative"
         />
         <StatCard
-          label="Out of Stock"
+          label={t('materials.outOfStock')}
           value={outOfStockCount}
           subtext="Immediate restock critical"
           icon={<IconAlertTriangle size={18} color="var(--color-danger)" />}
           trendType="negative"
         />
         <StatCard
-          label="Total Inventory Value"
+          label={t('materials.totalInventoryValue')}
           value="$330,608"
           subtext="Committed material assets"
           trendType="neutral"
@@ -124,7 +125,7 @@ export const Materials = ({
             <IconSearch size={16} color="var(--text-muted)" />
             <input
               type="text"
-              placeholder="Search Material or Supplier..."
+              placeholder={t('materials.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -135,10 +136,10 @@ export const Materials = ({
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="All">All Stock Statuses</option>
-            <option value="In Stock">In Stock</option>
-            <option value="LOW STOCK">Low Stock</option>
-            <option value="OUT OF STOCK">Out of Stock</option>
+            <option value="All">{t('materials.allStatuses')}</option>
+            <option value="In Stock">{t('status.inStock')}</option>
+            <option value="LOW STOCK">{t('status.lowStock')}</option>
+            <option value="OUT OF STOCK">{t('status.outOfStock')}</option>
           </select>
 
           <select
@@ -146,7 +147,7 @@ export const Materials = ({
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
           >
-            <option value="All">All Projects</option>
+            <option value="All">{t('tasks.allProjects')}</option>
             {projects.map((p) => (
               <option key={p.id} value={p.name}>
                 {p.name}
@@ -156,7 +157,7 @@ export const Materials = ({
         </div>
 
         <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-          Showing <strong>{filteredMaterials.length}</strong> items
+          {t('common.showingOf', { count: filteredMaterials.length, total: materials.length })}
         </div>
       </div>
 
@@ -165,153 +166,148 @@ export const Materials = ({
         <table className="data-table">
           <thead>
             <tr>
-              <th>Material</th>
-              <th>Project</th>
-              <th>Required</th>
-              <th>Available</th>
-              <th>Used</th>
-              <th>Supplier</th>
-              <th>Status</th>
-              <th>Action</th>
+              <th>{t('materials.materialName')}</th>
+              <th>{t('navigation.projects')}</th>
+              <th>{t('materials.requiredQty')}</th>
+              <th>{t('materials.availableQty')}</th>
+              <th>{t('materials.usedQty')}</th>
+              <th>{t('suppliers.supplierName')}</th>
+              <th>{t('materials.stockStatus')}</th>
+              <th>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
-            {filteredMaterials.map((m) => {
-              const isLow = m.status === 'LOW STOCK';
-              const isOut = m.status === 'OUT OF STOCK';
-
-              return (
-                <tr key={m.id}>
+            {filteredMaterials.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  {t('materials.noMaterials')}
+                </td>
+              </tr>
+            ) : (
+              filteredMaterials.map((mat) => (
+                <tr key={mat.id}>
                   <td>
-                    <div className="table-cell-title">{m.material}</div>
-                    <div className="table-cell-sub">{m.category || m.id}</div>
+                    <div className="table-cell-title">{mat.material}</div>
+                    <div className="table-cell-sub">{mat.id}</div>
+                  </td>
+                  <td>{mat.project}</td>
+                  <td>{mat.required}</td>
+                  <td style={{ fontWeight: 600 }}>{mat.available}</td>
+                  <td>{mat.used}</td>
+                  <td>{mat.supplier}</td>
+                  <td>
+                    <StatusBadge status={mat.status} />
                   </td>
                   <td>
-                    <span style={{ fontWeight: 500 }}>{m.project}</span>
-                  </td>
-                  <td>{m.required}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          color: isOut
-                            ? 'var(--color-danger)'
-                            : isLow
-                            ? 'var(--color-warning-text)'
-                            : 'var(--text-main)',
-                        }}
-                      >
-                        {m.available}
-                      </span>
-                    </div>
-                  </td>
-                  <td>{m.used}</td>
-                  <td>{m.supplier}</td>
-                  <td>
-                    <StatusBadge status={m.status} />
-                  </td>
-                  <td>
-                    {(isLow || isOut) && (
+                    {['LOW STOCK', 'OUT OF STOCK', 'Low Stock', 'Out of Stock'].includes(mat.status) ? (
                       <button
                         className="btn btn-secondary btn-sm"
-                        onClick={() => onReorder && onReorder(m)}
+                        style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}
+                        onClick={() => onReorder && onReorder(mat)}
                       >
-                        Reorder
+                        {t('materials.reorderBtn')}
                       </button>
+                    ) : (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>—</span>
                     )}
                   </td>
                 </tr>
-              );
-            })}
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Add Material Modal */}
       {isAddModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-backdrop" onClick={() => setIsAddModalOpen(false)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">Add New Material Stock</div>
+              <div>
+                <h2 className="modal-title">{t('materials.formTitle')}</h2>
+                <p className="modal-subtitle">{t('materials.formSubtitle')}</p>
+              </div>
               <button
                 className="modal-close-btn"
                 onClick={() => setIsAddModalOpen(false)}
+                aria-label="Close modal"
               >
-                <IconX />
+                <IconX size={20} />
               </button>
             </div>
-            <form onSubmit={handleCreateMaterial} className="modal-body">
-              <div className="form-group">
-                <label className="form-label">Material Name *</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Ready-Mix Concrete C40"
-                  value={modalData.material}
-                  onChange={(e) => setModalData({ ...modalData, material: e.target.value })}
-                  required
-                />
-              </div>
 
-              <div className="form-group">
-                <label className="form-label">Allocated Project</label>
-                <select
-                  className="form-control"
-                  value={modalData.project}
-                  onChange={(e) => setModalData({ ...modalData, project: e.target.value })}
-                >
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.name}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Required Quantity</label>
+            <form onSubmit={handleCreateMaterial} className="modal-form">
+              <div className="form-grid">
+                <div className="form-group full-width">
+                  <label className="form-label">{t('materials.materialName')} *</label>
                   <input
                     type="text"
-                    className="form-control"
-                    placeholder="e.g. 500 bags"
+                    className="form-input"
+                    placeholder="e.g. Portland Cement Grade 53"
+                    value={modalData.material}
+                    onChange={(e) => setModalData({ ...modalData, material: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">{t('navigation.projects')}</label>
+                  <select
+                    className="form-input"
+                    value={modalData.project}
+                    onChange={(e) => setModalData({ ...modalData, project: e.target.value })}
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.name}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">{t('suppliers.supplierName')}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={modalData.supplier}
+                    onChange={(e) => setModalData({ ...modalData, supplier: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">{t('materials.requiredQty')}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. 500 Bags"
                     value={modalData.required}
                     onChange={(e) => setModalData({ ...modalData, required: e.target.value })}
                   />
                 </div>
+
                 <div className="form-group">
-                  <label className="form-label">Available Stock</label>
+                  <label className="form-label">{t('materials.availableQty')}</label>
                   <input
                     type="text"
-                    className="form-control"
-                    placeholder="e.g. 80 bags"
+                    className="form-input"
+                    placeholder="e.g. 80 Bags"
                     value={modalData.available}
                     onChange={(e) => setModalData({ ...modalData, available: e.target.value })}
                   />
                 </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Primary Supplier</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={modalData.supplier}
-                  onChange={(e) => setModalData({ ...modalData, supplier: e.target.value })}
-                />
-              </div>
-
-              <div className="form-actions">
+              <div className="modal-footer">
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => setIsAddModalOpen(false)}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Add Material
+                  {t('materials.createMaterialBtn')}
                 </button>
               </div>
             </form>

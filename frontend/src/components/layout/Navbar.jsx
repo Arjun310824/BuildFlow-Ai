@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   IconSearch,
   IconMenu,
   IconAlerts,
   IconPlus,
   IconChevronDown,
-  IconCheck,
-  IconAlertTriangle,
 } from '../common/Icons';
 
 export const Navbar = ({
@@ -18,9 +17,26 @@ export const Navbar = ({
   onNavigate,
   recentAlerts = [],
 }) => {
+  const { t, i18n } = useTranslation();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
+
+  const currentLang = i18n.language || 'en';
+
+  const languages = [
+    { code: 'en', label: 'English', flag: '🇬🇧' },
+    { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
+    { code: 'gu', label: 'ગુજરાતી', flag: '🇮🇳' },
+  ];
+
+  const activeLangObj = languages.find((l) => l.code === currentLang) || languages[0];
+
+  const handleLanguageSelect = (code) => {
+    i18n.changeLanguage(code);
+    setShowLangMenu(false);
+  };
 
   return (
     <header className="top-navbar">
@@ -51,11 +67,74 @@ export const Navbar = ({
           </span>
           <input
             type="text"
-            placeholder="Search projects, tasks, materials..."
+            placeholder={t('navbar.searchPlaceholder')}
             value={searchQuery || ''}
             onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
           />
           <span className="search-shortcut">⌘K</span>
+        </div>
+
+        {/* Global Language Quick Selector */}
+        <div style={{ position: 'relative' }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setShowLangMenu((prev) => !prev)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 600,
+              fontSize: '0.82rem',
+              padding: '6px 10px',
+              borderRadius: 'var(--radius-md)',
+            }}
+            title={t('settings.languageLabel')}
+          >
+            <span>{activeLangObj.flag}</span>
+            <span>{activeLangObj.label}</span>
+            <IconChevronDown size={13} />
+          </button>
+
+          {showLangMenu && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '110%',
+                right: 0,
+                width: '160px',
+                background: '#ffffff',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-dropdown)',
+                padding: '6px',
+                zIndex: 100,
+              }}
+            >
+              {languages.map((lang) => (
+                <button
+                  key={lang.code}
+                  className={`nav-btn ${currentLang === lang.code ? 'active' : ''}`}
+                  style={{
+                    fontSize: '0.84rem',
+                    padding: '8px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    fontWeight: currentLang === lang.code ? 700 : 500,
+                  }}
+                  onClick={() => handleLanguageSelect(lang.code)}
+                >
+                  <span>{lang.flag}</span>
+                  <span>{lang.label}</span>
+                  {currentLang === lang.code && (
+                    <span style={{ marginLeft: 'auto', color: 'var(--color-accent)' }}>✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Quick Add Button */}
@@ -65,7 +144,7 @@ export const Navbar = ({
             onClick={() => setShowQuickAdd((prev) => !prev)}
           >
             <IconPlus size={16} />
-            <span>New</span>
+            <span>{t('navbar.quickAdd')}</span>
             <IconChevronDown size={14} />
           </button>
 
@@ -92,7 +171,7 @@ export const Navbar = ({
                   onNavigate('add-project');
                 }}
               >
-                + Add Project
+                + {t('projects.addProject')}
               </button>
               <button
                 className="nav-btn"
@@ -102,7 +181,7 @@ export const Navbar = ({
                   onNavigate('add-task');
                 }}
               >
-                + Add Task
+                + {t('tasks.addTask')}
               </button>
               <button
                 className="nav-btn"
@@ -112,7 +191,7 @@ export const Navbar = ({
                   onNavigate('site-updates');
                 }}
               >
-                + Daily Log Update
+                + {t('navbar.siteUpdate')}
               </button>
             </div>
           )}
@@ -152,7 +231,7 @@ export const Navbar = ({
                   marginBottom: '10px',
                 }}
               >
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Recent Alerts</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t('navbar.recentAlerts')}</span>
                 <button
                   style={{ fontSize: '0.75rem', color: 'var(--color-accent)', fontWeight: 600 }}
                   onClick={() => {
@@ -160,7 +239,7 @@ export const Navbar = ({
                     onNavigate('alerts');
                   }}
                 >
-                  View All
+                  {t('common.viewAll')}
                 </button>
               </div>
 
@@ -234,7 +313,7 @@ export const Navbar = ({
                   onNavigate('settings');
                 }}
               >
-                Profile & Settings
+                {t('navbar.profileSettings')}
               </button>
               <button
                 className="nav-btn"
@@ -244,7 +323,7 @@ export const Navbar = ({
                   onNavigate('dashboard');
                 }}
               >
-                Project Hub
+                {t('navbar.projectHub')}
               </button>
               <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }} />
               <button
@@ -255,7 +334,7 @@ export const Navbar = ({
                   alert('Session logged out.');
                 }}
               >
-                Sign Out
+                {t('navbar.signOut')}
               </button>
             </div>
           )}

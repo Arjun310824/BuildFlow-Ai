@@ -48,6 +48,15 @@
   --text-muted: #64748b;
   --text-subtle: #94a3b8;
   --text-inverse: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+
+  /* Theme Surfaces & Accents */
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  --border-cyan: #e2e8f0;
+  --accent-cyan: #ea580c;
+  --accent-cyan-glow: rgba(234, 88, 12, 0.15);
 
   /* Borders & Dividers */
   --border-color: #e2e8f0;
@@ -902,6 +911,14 @@ a {
   border-color: var(--border-focus);
 }
 
+select option,
+.form-control option,
+.filter-select option,
+.form-select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
 /* Tab Pills */
 .tab-pills-bar {
   display: flex;
@@ -1296,18 +1313,19 @@ textarea.form-control {
 }
 
 .filter-select {
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  font-size: 0.825rem;
-  font-weight: 500;
-  cursor: pointer;
+  padding: 7px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  color: var(--text-main);
+  font-size: 0.84rem;
   outline: none;
+  cursor: pointer;
 }
 
 .filter-select option {
-  background: #0E1626;
-  color: var(--text-primary);
+  background: #ffffff;
+  color: #0f172a;
 }
 
 .view-mode-toggle {
@@ -1610,8 +1628,8 @@ textarea.form-control {
 }
 
 .form-select option {
-  background: #0E1626;
-  color: var(--text-primary);
+  background: #ffffff;
+  color: #0f172a;
 }
 
 .form-range {

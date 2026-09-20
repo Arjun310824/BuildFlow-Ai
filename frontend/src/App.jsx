@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sidebar } from './components/layout/Sidebar';
 import { Navbar } from './components/layout/Navbar';
 import { ToastNotification } from './components/common/ToastNotification';
@@ -31,6 +32,7 @@ import {
 } from './mock/constructionData';
 
 export default function App() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedProjectId, setSelectedProjectId] = useState('PRJ-101');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -113,33 +115,33 @@ export default function App() {
 
     switch (activeTab) {
       case 'dashboard':
-        return { title: 'Dashboard', subtitle: 'Alex Morgan • Portfolio Overview' };
+        return { title: t('navigation.dashboard'), subtitle: `Alex Morgan • ${t('dashboard.title')}` };
       case 'projects':
-        return { title: 'Projects', subtitle: `${projects.length} Total Projects` };
+        return { title: t('navigation.projects'), subtitle: `${projects.length} ${t('projects.title')}` };
       case 'add-project':
-        return { title: 'Add Project', subtitle: 'New Capital Asset' };
+        return { title: t('projects.addProject'), subtitle: t('projects.formSubtitle') };
       case 'project-details':
-        return { title: selectedPrj?.name || 'Project Details', subtitle: selectedPrj?.code || 'Details' };
+        return { title: selectedPrj?.name || t('navigation.projectDetails'), subtitle: selectedPrj?.code || t('common.viewDetails') };
       case 'tasks':
-        return { title: 'Tasks', subtitle: `${tasks.length} Active Work Orders` };
+        return { title: t('navigation.tasks'), subtitle: `${tasks.length} ${t('tasks.title')}` };
       case 'add-task':
-        return { title: 'Add Task', subtitle: 'Milestone Work Order' };
+        return { title: t('tasks.addTask'), subtitle: t('tasks.formSubtitle') };
       case 'materials':
-        return { title: 'Material Inventory', subtitle: `${materials.length} Tracked Stockpiles` };
+        return { title: t('materials.title'), subtitle: `${materials.length} ${t('navigation.materials')}` };
       case 'suppliers':
-        return { title: 'Suppliers', subtitle: `${suppliers.length} Approved Vendors` };
+        return { title: t('suppliers.title'), subtitle: `${suppliers.length} ${t('navigation.suppliers')}` };
       case 'site-updates':
-        return { title: 'Site Updates', subtitle: 'Daily Field Telemetry' };
+        return { title: t('siteUpdates.title'), subtitle: t('siteUpdates.subtitle') };
       case 'documents':
-        return { title: 'Documents', subtitle: `${documents.length} Files in Cloud Vault` };
+        return { title: t('documents.title'), subtitle: `${documents.length} ${t('navigation.documents')}` };
       case 'reports':
-        return { title: 'Reports & Analytics', subtitle: 'Operational Intelligence' };
+        return { title: t('reports.title'), subtitle: t('reports.subtitle') };
       case 'insights':
-        return { title: 'AI Project Insights', subtitle: 'Gemini Predictive Intelligence' };
+        return { title: t('aiInsights.title'), subtitle: 'Gemini AI' };
       case 'alerts':
-        return { title: 'Alerts & Notifications', subtitle: `${alerts.length} System Advisories` };
+        return { title: t('alerts.title'), subtitle: `${alerts.length} ${t('alerts.title')}` };
       case 'settings':
-        return { title: 'Settings', subtitle: 'Account & Workspace Preferences' };
+        return { title: t('settings.title'), subtitle: t('settings.subtitle') };
       default:
         return { title: 'BuildFlow AI', subtitle: 'Smart Construction Suite' };
     }
