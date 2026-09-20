@@ -131,7 +131,7 @@ export default function App() {
       case 'suppliers':
         return { title: t('suppliers.title'), subtitle: `${suppliers.length} ${t('navigation.suppliers')}` };
       case 'site-updates':
-        return { title: t('siteUpdates.title'), subtitle: t('siteUpdates.subtitle') };
+        return { title: t('siteUpdates.title', 'Site Updates'), subtitle: t('siteUpdates.badge', 'Daily Field Telemetry') };
       case 'documents':
         return { title: t('documents.title'), subtitle: `${documents.length} ${t('navigation.documents')}` };
       case 'reports':
