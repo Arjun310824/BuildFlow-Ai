@@ -48,3 +48,12 @@ export const chatWithProjectApi = async (projectId, message) => {
 export const getAiProjectsApi = async () => {
   return await apiClient('/ai/projects');
 };
+
+/**
+ * Fetch AI Insights for a specific project from backend Gemini AI service
+ * @param {string} projectId - Project identifier
+ * @returns {Promise<{ success: boolean, data: Object }>}
+ */
+export const getProjectAIInsights = async (projectId) => {
+  return apiClient(`/ai/project/${projectId}`);
+};
