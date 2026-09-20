@@ -2,67 +2,49 @@
 
 > Smart Construction Data Management & AI-Powered Project Intelligence Platform
 
-BuildFlow AI is an intelligent construction project management platform designed to centralize construction data, improve project tracking, identify risks, and support better decision-making.
+BuildFlow AI is a smart construction project management platform designed to centralize project information, improve progress tracking, monitor resources, identify project risks, and support better decision-making.
 
-The platform brings project information such as tasks, progress, materials, reports, and project insights into one unified system.
-
----
-
-## 🚀 Hackathon
-
-### LJ University B.Tech Hackathon 2026
-
-**Challenge:** Real-World Product Innovation Challenge
-
-**Selected Task:**  
-### Task 07 — Smart Construction Data Management
-
-The objective of Task 07 is to develop an end-to-end technology solution for managing, organizing, and utilizing data across construction and real-estate operations, enabling better:
-
-- Data accessibility
-- Coordination
-- Reporting
-- Tracking
-- Decision-making
+The platform brings important construction information such as projects, tasks, materials, progress, reports, and AI-generated insights into one unified system.
 
 ---
 
-# 🎯 Problem Statement
+## 🎯 Problem Statement
 
 Construction projects generate a large amount of information related to:
 
 - Project progress
 - Tasks and deadlines
-- Materials
-- Contractors
+- Construction materials
 - Site activities
-- Reports
+- Project reports
 - Documents
 - Project risks
+- Resource availability
 
-In many cases, this information can be scattered across spreadsheets, documents, messages, and different teams.
+In many organizations, this information can be scattered across spreadsheets, documents, messages, and different teams.
 
-This makes it difficult for project managers to get a clear and updated view of the project.
+This can make it difficult for project managers to get a clear and updated view of project status.
 
-### Problems
+### Key Problems
 
 - Difficult project progress tracking
 - Delayed task identification
 - Poor visibility of material availability
 - Scattered project information
-- Time-consuming reporting
+- Time-consuming manual reporting
+- Difficulty identifying project risks
 - Delayed decision-making
-- Limited project risk visibility
+- Lack of centralized project data
 
 ---
 
 # 💡 Our Solution
 
-BuildFlow AI provides a centralized platform where construction project managers can manage and analyze project information from a single dashboard.
+BuildFlow AI provides a centralized platform where construction project managers can manage, track, and analyze project information from a single dashboard.
 
 The platform combines:
 
-**Construction Data + Project Tracking + Analytics + AI**
+**Construction Data + Project Tracking + Analytics + Artificial Intelligence**
 
 to provide actionable project insights.
 
@@ -72,7 +54,7 @@ to provide actionable project insights.
 
 ## 1. 📊 Project Dashboard
 
-Provides an overview of the entire construction portfolio.
+Provides an overview of construction projects from a single dashboard.
 
 Displays:
 
@@ -93,14 +75,27 @@ Project managers can create and manage construction projects.
 Project information includes:
 
 - Project name
-- Client
+- Client name
 - Location
 - Project manager
 - Start date
 - Expected completion date
-- Progress
-- Status
+- Progress percentage
+- Project status
 - Risk level
+
+### Project Status
+
+- Planning
+- In Progress
+- On Hold
+- Completed
+
+### Risk Levels
+
+- Low
+- Medium
+- High
 
 ---
 
@@ -115,10 +110,10 @@ Each task can contain:
 - Start date
 - Deadline
 - Status
-- Progress
+- Progress percentage
 - Priority
 
-This helps identify delayed or high-priority activities.
+The system helps project managers identify delayed and high-priority activities.
 
 ---
 
@@ -131,42 +126,45 @@ The system can track:
 - Material name
 - Required quantity
 - Available quantity
-- Usage
+- Used quantity
 - Stock status
+- Low-stock alerts
 
-Low-stock materials can be highlighted so managers can take action.
+This helps project managers identify potential material shortages before they affect project progress.
 
 ---
 
 ## 5. 📈 Project Reports
 
-Generate project-level information and insights including:
+BuildFlow AI provides project information and reports including:
 
 - Project progress
-- Delayed tasks
+- Task status
+- Delayed activities
 - Material status
 - Project risk
 - Overall project health
+
+These reports help managers understand the current state of their projects.
 
 ---
 
 ## 6. 🤖 AI-Powered Project Insights
 
-AI analyzes project data and provides useful insights.
+BuildFlow AI uses artificial intelligence to analyze construction project data and generate useful insights.
 
-For example:
-
-> Project progress is currently 13% behind the planned schedule.
-
-The system can identify:
+AI can help identify:
 
 - Potential project risks
-- Delayed activities
-- Material shortages
+- Schedule delays
 - Progress gaps
+- Material shortages
+- Critical tasks
 - Recommended actions
 
 ### Example
+
+Project data:
 
 ```text
 Project Progress: 62%
@@ -176,6 +174,6 @@ Delayed Tasks:
 - Electrical Work: 6 days
 - Plumbing: 3 days
 
-Material:
+Materials:
 - Cement: Low
 - Steel: Normal
