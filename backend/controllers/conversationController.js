@@ -135,24 +135,31 @@ export const getConversationById = async (req, res, next) => {
  */
 export const createConversation = async (req, res, next) => {
   try {
-    const { title, projectId, projectName, userId = 'default-user' } = req.body;
+    const { title, projectId, projectName, userId } = req.body;
+    const currentUserId = req.user?._id?.toString() || userId || 'default-user';
 
     let resolvedProjectName = projectName || 'All Projects';
     let validProjectId = null;
 
     if (projectId && projectId !== 'all' && mongoose.Types.ObjectId.isValid(projectId)) {
       validProjectId = projectId;
-      const proj = await Project.findById(projectId).select('name').lean();
-      if (proj) {
-        resolvedProjectName = proj.name;
+      const proj = await Project.findById(projectId).select('name organizationId').lean();
+      if (!proj) {
+        return res.status(404).json({ success: false, error: `Project not found with ID ${projectId}` });
       }
+      if (req.user?.organizationId && proj.organizationId) {
+        if (proj.organizationId.toString() !== req.user.organizationId.toString()) {
+          return res.status(403).json({ success: false, error: 'Access denied: Project belongs to a different organization.' });
+        }
+      }
+      resolvedProjectName = proj.name;
     }
 
     const initialTitle = (title || '').trim() || (resolvedProjectName !== 'All Projects' ? `Project: ${resolvedProjectName}` : 'New Conversation');
 
     const conversation = await Conversation.create({
       title: initialTitle.slice(0, 100),
-      userId,
+      userId: currentUserId,
       projectId: validProjectId,
       projectName: resolvedProjectName,
       messages: [],
@@ -173,7 +180,7 @@ export const createConversation = async (req, res, next) => {
 /**
  * @desc   Send a message to an existing conversation (saves user msg, queries Gemini, saves assistant msg)
  * @route  POST /api/ai/conversations/:id/messages
- * @access Public
+ * @access Public / Authenticated
  */
 export const sendMessageToConversation = async (req, res, next) => {
   try {
@@ -212,15 +219,30 @@ export const sendMessageToConversation = async (req, res, next) => {
       targetProjectId = null;
     }
 
-    // Update conversation project if changed in request
+    // Update conversation project if changed in request & verify organization access
     if (projectId !== undefined) {
       if (projectId && projectId !== 'all' && mongoose.Types.ObjectId.isValid(projectId)) {
+        const pRecord = await Project.findById(projectId).select('name organizationId').lean();
+        if (!pRecord) {
+          return res.status(404).json({ success: false, error: 'Project not found in database.' });
+        }
+        if (req.user?.organizationId && pRecord.organizationId) {
+          if (pRecord.organizationId.toString() !== req.user.organizationId.toString()) {
+            return res.status(403).json({ success: false, error: 'Access denied: Project belongs to a different organization.' });
+          }
+        }
         conversation.projectId = projectId;
-        const pRecord = await Project.findById(projectId).select('name').lean();
-        if (pRecord) conversation.projectName = pRecord.name;
+        conversation.projectName = pRecord.name;
       } else {
         conversation.projectId = null;
         conversation.projectName = 'All Projects';
+      }
+    } else if (targetProjectId) {
+      const pRecord = await Project.findById(targetProjectId).select('organizationId').lean();
+      if (pRecord && req.user?.organizationId && pRecord.organizationId) {
+        if (pRecord.organizationId.toString() !== req.user.organizationId.toString()) {
+          return res.status(403).json({ success: false, error: 'Access denied: Project belongs to a different organization.' });
+        }
       }
     }
 
@@ -258,10 +280,27 @@ export const sendMessageToConversation = async (req, res, next) => {
       content: m.content,
     }));
 
-    // 3. Call Gemini with Real Project Context, Images, Documents, and History
+    // 3. Extract financial token if present
+    const financialToken =
+      req.headers['x-financial-access-token'] ||
+      req.headers['financial-token'] ||
+      req.body.financialToken ||
+      req.query.financialToken;
+
+    // 4. Call Gemini with Real Project Context, Images, Documents, and Financial Protection
     let chatResult = null;
     try {
-      chatResult = await chatWithProject(targetProjectId, cleanMessage, images, documents, recentHistory);
+      chatResult = await chatWithProject(
+        targetProjectId,
+        cleanMessage,
+        images,
+        documents,
+        recentHistory,
+        {
+          user: req.user,
+          financialToken,
+        }
+      );
     } catch (apiError) {
       console.error(`[Conversation AI Error] ${apiError.message}`);
       // If validation error (400) or not found (404), return immediately WITHOUT saving fake message

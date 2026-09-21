@@ -81,17 +81,52 @@ const groupConversationsByDate = (conversationsList) => {
   return groups;
 };
 
+/**
+ * Dynamically generates a natural, construction-grounded question based on the dashboard insight
+ */
+export const generateInsightQuestion = (ctx) => {
+  if (!ctx) return 'Analyze the project status and provide actionable recommendations.';
+  const { projectName, insightType, insightTitle, insightDescription, affectedTaskName, delayDays } = ctx;
+
+  const type = (insightType || insightTitle || 'Schedule Pressure').toLowerCase();
+
+  if (affectedTaskName) {
+    const delaySnippet = delayDays > 0 ? `delayed by ${delayDays} days` : 'delayed';
+    return `What should we do about the schedule pressure in ${projectName || 'the project'} caused by the ${affectedTaskName} task being ${delaySnippet}? Please provide a structured analysis including Situation, Evidence, Impact, Recommended Actions, Priority, and immediate Next Steps.`;
+  }
+
+  if (type.includes('material') || type.includes('stock')) {
+    return `Analyze the material risk in ${projectName || 'the project'}${insightDescription ? `: "${insightDescription}"` : ''}. Which materials are at risk, what is the shortfall, and what recovery actions should we take?`;
+  }
+
+  if (type.includes('cost') || type.includes('budget') || type.includes('financial')) {
+    return `Analyze the cost and financial risk in ${projectName || 'the project'}${insightDescription ? `: "${insightDescription}"` : ''}. What factors are driving this concern and what corrective actions are recommended?`;
+  }
+
+  if (insightDescription) {
+    return `Analyze the ${insightTitle || 'issue'} detected in ${projectName || 'the project'}: "${insightDescription}". What is the operational impact and what specific actions should the project team take?`;
+  }
+
+  return `Analyze the ${insightTitle || 'operational status'} in ${projectName || 'the project'} and recommend recovery actions.`;
+};
+
 export const AIInsights = ({
   projects = [],
   selectedProjectId,
   onSelectProject,
   onTriggerAction,
+  insightContext,
+  onClearInsightContext,
 }) => {
   const { t } = useTranslation();
 
   // Project selection state (Task 5: Real MongoDB projects)
   const [dbProjects, setDbProjects] = useState([]);
   const [activeProjectId, setActiveProjectId] = useState('all');
+
+  // Dashboard Insight Context Banner & Ref to avoid duplicate triggers
+  const [activeInsightBanner, setActiveInsightBanner] = useState(null);
+  const lastTriggeredContextIdRef = useRef(null);
 
   // Persistent Conversation History State (Task 6)
   const [conversations, setConversations] = useState([]);
@@ -219,6 +254,106 @@ export const AIInsights = ({
       isMounted = false;
     };
   }, [activeConvId]);
+
+  // 4. Auto-Initiate Conversation when Navigated from Dashboard "View Recommendation ->"
+  useEffect(() => {
+    if (!insightContext || !insightContext.projectId) return;
+
+    const contextKey = `${insightContext.projectId}-${insightContext.affectedTaskId || insightContext.insightTitle}-${insightContext.timestamp || ''}`;
+    if (lastTriggeredContextIdRef.current === contextKey) return;
+    lastTriggeredContextIdRef.current = contextKey;
+
+    let isMounted = true;
+
+    const startInsightConversation = async () => {
+      try {
+        setIsChatLoading(true);
+        setChatLoadingText('BuildOps AI is analyzing project telemetry for recommendation...');
+
+        // 1. Switch active project selector to the insight's project
+        setActiveProjectId(insightContext.projectId);
+        if (onSelectProject) onSelectProject(insightContext.projectId);
+
+        // 2. Set active insight banner for chat UI
+        setActiveInsightBanner({
+          projectId: insightContext.projectId,
+          projectName: insightContext.projectName,
+          insightTitle: insightContext.insightTitle || insightContext.title || 'Schedule Pressure Detected',
+          insightDescription: insightContext.insightDescription || insightContext.description,
+          affectedTaskName: insightContext.affectedTaskName,
+          delayDays: insightContext.delayDays,
+          priority: insightContext.taskPriority || 'Critical',
+        });
+
+        // 3. Prepare dynamic question based on real insight context
+        const promptText = generateInsightQuestion(insightContext);
+        const convTitle = `${insightContext.insightTitle || 'AI Recommendation'}: ${insightContext.projectName}`;
+
+        // 4. Create new persistent conversation in MongoDB
+        const createRes = await createConversationApi({
+          projectId: insightContext.projectId,
+          projectName: insightContext.projectName,
+          title: convTitle.slice(0, 70),
+        });
+
+        if (!createRes.success || !createRes.data) {
+          throw new Error(createRes.error || 'Failed to initialize AI conversation record.');
+        }
+
+        const newConvId = createRes.data._id || createRes.data.id;
+        if (!isMounted) return;
+
+        setActiveConvId(newConvId);
+
+        // 5. Optimistically update message list with user question
+        const localUserMessage = {
+          role: 'user',
+          content: promptText,
+          projectId: insightContext.projectId,
+          createdAt: new Date().toISOString(),
+        };
+        setActiveConversationData({
+          _id: newConvId,
+          projectId: insightContext.projectId,
+          projectName: insightContext.projectName,
+          title: convTitle,
+          messages: [localUserMessage],
+        });
+
+        // 6. Send message to backend Gemini pipeline
+        const sendRes = await sendConversationMessageApi(newConvId, {
+          message: promptText,
+          projectId: insightContext.projectId,
+        });
+
+        if (sendRes.success && sendRes.conversation && isMounted) {
+          setActiveConversationData(sendRes.conversation);
+          loadConversations();
+          if (onTriggerAction) {
+            onTriggerAction('AI Recommendation loaded successfully.');
+          }
+        } else {
+          throw new Error(sendRes.error || 'Failed to receive AI recommendation.');
+        }
+      } catch (err) {
+        console.error('Error auto-initiating insight conversation:', err);
+        if (isMounted) {
+          setValidationError(`Unable to load recommendation: ${err.message}`);
+        }
+      } finally {
+        if (isMounted) {
+          setIsChatLoading(false);
+          if (onClearInsightContext) onClearInsightContext();
+        }
+      }
+    };
+
+    startInsightConversation();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [insightContext]);
 
   // Handle Project Selector Change
   const handleProjectChange = (newId) => {
@@ -1589,6 +1724,70 @@ export const AIInsights = ({
             ) : (
               /* CHAT MESSAGE STREAM */
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '840px', width: '100%', margin: '0 auto' }}>
+                {/* Dashboard AI Insight Origin Banner */}
+                {activeInsightBanner && (
+                  <div
+                    style={{
+                      background: 'linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)',
+                      border: '1px solid #BAE6FD',
+                      borderRadius: '12px',
+                      padding: '16px 20px',
+                      marginBottom: '4px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: '14px',
+                      boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)',
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <span
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.05em',
+                            textTransform: 'uppercase',
+                            background: '#0284C7',
+                            color: '#FFFFFF',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          DASHBOARD AI INSIGHT
+                        </span>
+                        <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#0369A1' }}>
+                          {activeInsightBanner.projectName}
+                        </span>
+                      </div>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0F172A', margin: '0 0 4px 0' }}>
+                        {activeInsightBanner.insightTitle}
+                      </h3>
+                      {activeInsightBanner.insightDescription && (
+                        <p style={{ fontSize: '0.86rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+                          {activeInsightBanner.insightDescription}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveInsightBanner(null)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#64748B',
+                        fontSize: '1.1rem',
+                        cursor: 'pointer',
+                        padding: '2px 6px',
+                        lineHeight: 1,
+                      }}
+                      title="Dismiss insight banner"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                )}
+
                 {currentMessages.map((msg, index) => {
                   const isUser = msg.role === 'user' || msg.sender === 'user';
                   const msgText = msg.content || msg.text || '';
@@ -1939,6 +2138,25 @@ export const AIInsights = ({
                     </div>
                   );
                 })}
+
+                {/* Follow-up Question Prompt for Dashboard Insight */}
+                {activeInsightBanner && !isChatLoading && (
+                  <div
+                    style={{
+                      fontSize: '0.84rem',
+                      color: '#64748B',
+                      textAlign: 'center',
+                      padding: '8px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>💬</span>
+                    <span>You can ask follow-up questions about this issue.</span>
+                  </div>
+                )}
 
                 {/* AI Querying / Loading State */}
                 {isChatLoading && (

@@ -81,7 +81,6 @@ const organizationSchema = new mongoose.Schema(
 
 // Search and lookup index
 organizationSchema.index({ name: 'text', location: 'text' });
-organizationSchema.index({ code: 1 });
 
 const Organization = mongoose.model('Organization', organizationSchema);
 

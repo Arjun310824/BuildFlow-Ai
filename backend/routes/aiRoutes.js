@@ -16,15 +16,16 @@ import {
   sendMessageToConversation,
   deleteConversation,
 } from '../controllers/conversationController.js';
+import { optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
 
 // Persistent Conversation Endpoints (Task 6 & Task 7)
-router.get('/conversations', getConversations);
-router.post('/conversations', createConversation);
-router.get('/conversations/:id', getConversationById);
-router.post('/conversations/:id/messages', sendMessageToConversation);
-router.delete('/conversations/:id', deleteConversation);
+router.get('/conversations', optionalAuth, getConversations);
+router.post('/conversations', optionalAuth, createConversation);
+router.get('/conversations/:id', optionalAuth, getConversationById);
+router.post('/conversations/:id/messages', optionalAuth, sendMessageToConversation);
+router.delete('/conversations/:id', optionalAuth, deleteConversation);
 
 // Real MongoDB Data Analytics Endpoints
 router.post('/analyze-project', handleAnalyzeProject);

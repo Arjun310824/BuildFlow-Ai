@@ -80,7 +80,7 @@ export const TaskTimeline = ({
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginBottom: '4px', color: 'var(--text-muted)' }}>
                   <span>{task.status}</span>
-                  <span style={{ color: isDelayed ? '#F87171' : 'var(--accent-cyan)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ color: isDelayed ? '#DC2626' : 'var(--accent-cyan)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                     {progressVal}%
                   </span>
                 </div>
@@ -101,7 +101,7 @@ export const TaskTimeline = ({
                   style={{
                     fontSize: '0.76rem',
                     fontFamily: 'var(--font-mono)',
-                    color: isDelayed ? '#F87171' : 'var(--text-muted)',
+                    color: isDelayed ? '#DC2626' : 'var(--text-muted)',
                     fontWeight: isDelayed ? 700 : 500,
                   }}
                 >

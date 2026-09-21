@@ -130,6 +130,7 @@ function AppContent() {
   const [siteUpdates, setSiteUpdates] = useState(initialSiteUpdates);
   const [documents, setDocuments] = useState(initialDocuments);
   const [alerts, setAlerts] = useState(initialAlerts);
+  const [aiInsightContext, setAiInsightContext] = useState(null);
 
   // Toast Helper
   const addToast = useCallback((message, type = 'info') => {
@@ -240,9 +241,17 @@ function AppContent() {
   }, [isAuthenticated]);
 
   // Central Navigation Handler with Protected Route Checks
-  const handleNavigate = (targetTab) => {
+  const handleNavigate = (targetTab, navOptions = {}) => {
     if (targetTab === 'risk-radar') {
       targetTab = 'dashboard';
+    }
+
+    // Capture dynamic AI insight context when navigating from Dashboard
+    if (navOptions && navOptions.insightContext) {
+      setAiInsightContext(navOptions.insightContext);
+      if (navOptions.insightContext.projectId) {
+        setSelectedProjectId(navOptions.insightContext.projectId);
+      }
     }
 
     if (!isAuthenticated && targetTab !== 'login') {
@@ -542,6 +551,7 @@ function AppContent() {
             siteUpdates={siteUpdates}
             onNavigate={handleNavigate}
             onSelectProject={setSelectedProjectId}
+            addToast={addToast}
           />
         );
       case 'projects':
@@ -643,6 +653,8 @@ function AppContent() {
             projects={projects}
             selectedProjectId={selectedProjectId}
             onSelectProject={setSelectedProjectId}
+            insightContext={aiInsightContext}
+            onClearInsightContext={() => setAiInsightContext(null)}
             onTriggerAction={(msg) => addToast(msg, 'success')}
           />
         );

@@ -4,6 +4,7 @@ import { StatusBadge, PriorityBadge, TypeBadge, RiskBadge } from '../components/
 import { ProgressBar } from '../components/common/ProgressBar';
 import { DigitalConstructionSite } from '../components/common/DigitalConstructionSite';
 import { TaskTimeline } from '../components/common/TaskTimeline';
+import ProjectFinancials from '../components/financials/ProjectFinancials';
 import {
   IconCalendar,
   IconUser,
@@ -103,6 +104,7 @@ export const ProjectDetails = ({
     { id: 'schedule', label: 'Timeline & Schedule' },
     { id: 'tasks', label: t('navigation.tasks') },
     { id: 'materials', label: t('navigation.materials') },
+    { id: 'financials', label: 'Financials' },
     { id: 'site updates', label: t('navigation.siteUpdates') },
     { id: 'documents', label: t('navigation.documents') },
     { id: 'reports', label: t('navigation.reports') },
@@ -298,7 +300,7 @@ export const ProjectDetails = ({
                   height={6}
                 />
               </div>
-              <div className="stat-subtext" style={{ color: 'var(--color-danger)' }}>
+              <div className="stat-subtext" style={{ color: 'var(--color-danger-text)', fontWeight: 500 }}>
                 {projectTasks.filter((t) => t.status === 'Delayed').length} {t('status.delayed')}
               </div>
             </div>
@@ -534,7 +536,7 @@ export const ProjectDetails = ({
               >
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.94rem', color: '#FFFFFF' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.94rem', color: 'var(--text-main)' }}>
                       {u.date} • {u.time || '16:30'}
                     </span>
                     <span className="badge badge-info">{u.weather || 'Normal'}</span>
@@ -543,10 +545,10 @@ export const ProjectDetails = ({
                     {u.workCompleted}
                   </p>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    {t('dashboard.workersOnSite')}: <strong style={{ color: '#FFFFFF' }}>{u.workers} Active</strong> | {t('siteUpdates.supervisor')}: <strong style={{ color: '#FFFFFF' }}>{u.supervisor}</strong>
+                    {t('dashboard.workersOnSite')}: <strong style={{ color: 'var(--text-main)' }}>{u.workers} Active</strong> | {t('siteUpdates.supervisor')}: <strong style={{ color: 'var(--text-main)' }}>{u.supervisor}</strong>
                   </div>
                   {u.issues && (
-                    <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-sm)', color: 'var(--color-danger)', fontSize: '0.8rem' }}>
+                    <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 'var(--radius-sm)', color: 'var(--color-danger-text)', fontSize: '0.8rem', fontWeight: 500 }}>
                       ⚠️ {u.issues}
                     </div>
                   )}
@@ -641,6 +643,11 @@ export const ProjectDetails = ({
             <button className="btn btn-secondary btn-sm">{t('reports.exportCsv')}</button>
           </div>
         </div>
+      )}
+
+      {/* Tab: Project Financials */}
+      {activeTab === 'financials' && (
+        <ProjectFinancials project={currentProject} onNavigate={onNavigate} />
       )}
     </div>
   );

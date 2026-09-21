@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -33,6 +33,7 @@ export const Dashboard = ({
   siteUpdates: initialSiteUpdates = [],
   onNavigate,
   onSelectProject,
+  addToast,
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -47,6 +48,9 @@ export const Dashboard = ({
   const [aiInsight, setAiInsight] = useState(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiUnavailable, setAiUnavailable] = useState(false);
+  const [isOpeningAi, setIsOpeningAi] = useState(false);
+  const [openAiError, setOpenAiError] = useState(false);
+  const openingAiRef = useRef(false);
 
   // Fetch real data on mount
   const loadDashboardData = async () => {
@@ -108,7 +112,7 @@ export const Dashboard = ({
   const atRiskCount = atRiskProjects.length;
   const activePercent = totalProjects > 0 ? Math.round((activeProjects / totalProjects) * 100) : 0;
 
-  // Real Project AI Insight Fetching
+  // Real Project AI Insight Fetching with Rich Context
   const fetchAiInsight = async () => {
     if (projectsList.length === 0) {
       setAiUnavailable(true);
@@ -121,7 +125,7 @@ export const Dashboard = ({
 
       // Analyze at-risk project first, or active project
       const targetPrj = atRiskProjects[0] || projectsList[0];
-      const targetId = targetPrj._id || targetPrj.id;
+      const targetId = (targetPrj._id || targetPrj.id || '').toString();
 
       if (!targetId) {
         setAiUnavailable(true);
@@ -137,23 +141,62 @@ export const Dashboard = ({
 
         let title = 'Schedule Pressure Detected';
         let description = '';
+        let insightType = 'Schedule Pressure';
+        let affectedTaskId = null;
+        let affectedTaskName = null;
+        let taskPriority = 'Critical';
+        let taskStatus = 'Delayed';
+        let taskProgress = 0;
+        let dueDate = null;
+        let delayDays = 0;
 
         if (delayItem) {
+          insightType = 'Schedule Pressure';
           title = 'Schedule Pressure Detected';
-          description = `${delayItem.task} in ${targetPrj.name} is behind schedule. ${delayItem.reason || 'This may impact the finishing milestone.'}`;
+          affectedTaskName = delayItem.task;
+          const matchingTask = tasksList.find((t) => (t.title || t.name) === delayItem.task) || delayedTasks[0];
+          if (matchingTask) {
+            affectedTaskId = (matchingTask._id || matchingTask.id || '').toString();
+            taskPriority = matchingTask.priority || 'Critical';
+            taskStatus = matchingTask.status || 'Delayed';
+            taskProgress = matchingTask.progress ?? 0;
+            dueDate = matchingTask.dueDate;
+            if (matchingTask.dueDate) {
+              delayDays = Math.max(0, Math.floor((new Date() - new Date(matchingTask.dueDate)) / (1000 * 60 * 60 * 24)));
+            }
+          }
+          const overdueSnippet = delayDays > 0 ? `Critical priority task is overdue by ${delayDays} days, impacting dependent schedules.` : (delayItem.reason || 'This may impact the finishing milestone.');
+          description = `${delayItem.task} in ${targetPrj.name} is behind schedule. ${overdueSnippet}`;
         } else if (riskItem) {
+          insightType = riskItem.type || 'Project Risk';
           title = `${riskItem.type || 'Operational Risk'} Detected`;
-          description = `${riskItem.evidence} ${riskItem.recommendation || ''}`;
+          description = `${riskItem.evidence} ${riskItem.recommendation || ''}`.trim();
         } else if (res.data.summary) {
+          title = 'Operational Health Assessment';
+          insightType = 'Operational Health';
           description = res.data.summary;
         } else {
+          title = 'Project Telemetry Summary';
+          insightType = 'Project Telemetry';
           description = `Operational metrics for ${targetPrj.name} indicate steady progress with active trade monitoring.`;
         }
 
         setAiInsight({
+          projectId: targetId,
+          projectName: targetPrj.name,
+          insightType,
+          insightTitle: title,
+          insightDescription: description,
           title,
           description,
-          projectName: targetPrj.name,
+          affectedTaskId,
+          affectedTaskName,
+          taskPriority,
+          taskStatus,
+          taskProgress,
+          dueDate,
+          delayDays,
+          contextType: 'dashboard-insight',
           recommendation: res.data.recommendations?.[0]?.action || 'View Recommendation',
         });
       } else {
@@ -162,11 +205,30 @@ export const Dashboard = ({
           const dt = delayedTasks[0];
           const prj = projectsList.find(
             (p) => (p._id || p.id || '').toString() === (dt.projectId?._id || dt.projectId || '').toString()
-          );
+          ) || targetPrj;
+
+          const pId = (prj?._id || prj?.id || dt.projectId?._id || dt.projectId || targetId).toString();
+          const pName = prj?.name || targetPrj?.name || 'Active Site';
+          const delayDays = dt.dueDate ? Math.max(0, Math.floor((new Date() - new Date(dt.dueDate)) / (1000 * 60 * 60 * 24))) : 0;
+          const overdueSnippet = delayDays > 0 ? `Critical priority task is overdue by ${delayDays} days, impacting ground floor load-bearing columns schedule.` : 'This may impact the finishing milestone.';
+          const desc = `${dt.title || dt.name} in ${pName} is behind schedule. ${overdueSnippet}`;
+
           setAiInsight({
+            projectId: pId,
+            projectName: pName,
+            insightType: 'Schedule Pressure',
+            insightTitle: 'Schedule Pressure Detected',
+            insightDescription: desc,
             title: 'Schedule Pressure Detected',
-            description: `${dt.title || dt.name} in ${prj?.name || 'assigned project'} is behind schedule. This may impact the finishing milestone.`,
-            projectName: prj?.name || 'Active Site',
+            description: desc,
+            affectedTaskId: (dt._id || dt.id || '').toString(),
+            affectedTaskName: dt.title || dt.name,
+            taskPriority: dt.priority || 'Critical',
+            taskStatus: dt.status || 'Delayed',
+            taskProgress: dt.progress ?? 0,
+            dueDate: dt.dueDate,
+            delayDays,
+            contextType: 'dashboard-insight',
             recommendation: 'View Recommendation',
           });
         } else {
@@ -180,11 +242,29 @@ export const Dashboard = ({
         const dt = delayedTasks[0];
         const prj = projectsList.find(
           (p) => (p._id || p.id || '').toString() === (dt.projectId?._id || dt.projectId || '').toString()
-        );
+        ) || projectsList[0];
+
+        const pId = (prj?._id || prj?.id || dt.projectId?._id || dt.projectId || '').toString();
+        const pName = prj?.name || 'Active Site';
+        const delayDays = dt.dueDate ? Math.max(0, Math.floor((new Date() - new Date(dt.dueDate)) / (1000 * 60 * 60 * 24))) : 0;
+        const desc = `${dt.title || dt.name} in ${pName} is behind schedule. ${delayDays > 0 ? `Task is overdue by ${delayDays} days.` : 'Milestone completion is at risk.'}`;
+
         setAiInsight({
+          projectId: pId,
+          projectName: pName,
+          insightType: 'Schedule Pressure',
+          insightTitle: 'Schedule Pressure Detected',
+          insightDescription: desc,
           title: 'Schedule Pressure Detected',
-          description: `${dt.title || dt.name} in ${prj?.name || 'assigned project'} is behind schedule. This may impact the finishing milestone.`,
-          projectName: prj?.name || 'Active Site',
+          description: desc,
+          affectedTaskId: (dt._id || dt.id || '').toString(),
+          affectedTaskName: dt.title || dt.name,
+          taskPriority: dt.priority || 'Critical',
+          taskStatus: dt.status || 'Delayed',
+          taskProgress: dt.progress ?? 0,
+          dueDate: dt.dueDate,
+          delayDays,
+          contextType: 'dashboard-insight',
           recommendation: 'View Recommendation',
         });
       } else {
@@ -192,6 +272,47 @@ export const Dashboard = ({
       }
     } finally {
       setIsAiLoading(false);
+    }
+  };
+
+  // Safe recommendation opener with anti-duplicate debounce and toast error handling
+  const handleViewRecommendation = () => {
+    if (openingAiRef.current || isOpeningAi) return;
+
+    if (!aiInsight || !aiInsight.projectId) {
+      if (addToast) {
+        addToast("I couldn't load the project context required for this recommendation.", 'error');
+      }
+      setOpenAiError(true);
+      setTimeout(() => setOpenAiError(false), 3000);
+      return;
+    }
+
+    try {
+      openingAiRef.current = true;
+      setIsOpeningAi(true);
+      setOpenAiError(false);
+
+      if (onNavigate) {
+        onNavigate('insights', {
+          insightContext: {
+            ...aiInsight,
+            timestamp: Date.now(),
+          },
+        });
+      }
+    } catch (err) {
+      console.error('Failed to open AI Chatboard recommendation:', err);
+      setOpenAiError(true);
+      if (addToast) {
+        addToast('Unable to open recommendation. Please try again.', 'error');
+      }
+      setTimeout(() => setOpenAiError(false), 3000);
+    } finally {
+      setTimeout(() => {
+        setIsOpeningAi(false);
+        openingAiRef.current = false;
+      }, 600);
     }
   };
 
@@ -1261,9 +1382,20 @@ export const Dashboard = ({
                 <button
                   type="button"
                   className="btn-view-recommendation"
-                  onClick={() => onNavigate && onNavigate('insights')}
+                  onClick={handleViewRecommendation}
+                  disabled={isOpeningAi}
+                  style={{
+                    cursor: isOpeningAi ? 'wait' : 'pointer',
+                    opacity: isOpeningAi ? 0.85 : 1,
+                  }}
                 >
-                  <span>View Recommendation</span>
+                  <span>
+                    {isOpeningAi
+                      ? 'Opening AI...'
+                      : openAiError
+                      ? 'Unable to open recommendation'
+                      : 'View Recommendation'}
+                  </span>
                   <span>&rarr;</span>
                 </button>
               </div>

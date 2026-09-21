@@ -119,7 +119,8 @@ export const chatWithProject = async (
   message,
   images = [],
   documents = [],
-  conversationHistory = []
+  conversationHistory = [],
+  options = {}
 ) => {
   const hasImages = Array.isArray(images) && images.length > 0;
   const hasDocs = Array.isArray(documents) && documents.length > 0;
@@ -132,7 +133,7 @@ export const chatWithProject = async (
   }
 
   // Fetch real project data + portfolio summary (validates project existence)
-  const context = await getChatContext(projectId);
+  const context = await getChatContext(projectId, options);
 
   // Query Gemini with context + user message + images + documents + conversation history
   return await generateProjectChatResponse(context, cleanMessage, images, documents, conversationHistory);

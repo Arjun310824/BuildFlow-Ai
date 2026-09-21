@@ -8,8 +8,10 @@ export const apiClient = async (endpoint, options = {}) => {
   
   // Retrieve token from localStorage if available
   let token = null;
+  let financialToken = null;
   try {
     token = localStorage.getItem('buildops_token');
+    financialToken = sessionStorage.getItem('buildops_financial_token') || localStorage.getItem('buildops_financial_token');
   } catch (e) {
     console.warn('Unable to access localStorage for auth token');
   }
@@ -20,6 +22,10 @@ export const apiClient = async (endpoint, options = {}) => {
 
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
+  if (financialToken) {
+    defaultHeaders['x-financial-access-token'] = financialToken;
   }
 
   const config = {
@@ -715,6 +721,95 @@ export const cancelBusinessTransactionApi = async (id, reason = '') => {
     body: JSON.stringify({ reason }),
   });
 };
+
+// ==========================================
+// Project Financial Management Endpoints
+// ==========================================
+
+export const getProjectFinancialsApi = async (projectId, params = {}) => {
+  const query = new URLSearchParams();
+  if (params.type && params.type !== 'All') query.append('type', params.type);
+  if (params.category && params.category !== 'All') query.append('category', params.category);
+  if (params.paymentStatus && params.paymentStatus !== 'All') query.append('paymentStatus', params.paymentStatus);
+  if (params.search && params.search.trim()) query.append('search', params.search.trim());
+  if (params.startDate) query.append('startDate', params.startDate);
+  if (params.endDate) query.append('endDate', params.endDate);
+  const qStr = query.toString() ? `?${query.toString()}` : '';
+  return await apiClient(`/projects/${projectId}/financials${qStr}`);
+};
+
+export const getProjectFinancialSummaryApi = async (projectId) => {
+  return await apiClient(`/projects/${projectId}/financials/summary`);
+};
+
+export const createFinancialTransactionApi = async (projectId, payload) => {
+  return await apiClient(`/projects/${projectId}/financials/transactions`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const createFinancialExpenseApi = async (projectId, payload) => {
+  return await apiClient(`/projects/${projectId}/financials/expense`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const createFinancialRevenueApi = async (projectId, payload) => {
+  return await apiClient(`/projects/${projectId}/financials/revenue`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateFinancialTransactionApi = async (projectId, txId, updates) => {
+  return await apiClient(`/projects/${projectId}/financials/transactions/${txId}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  });
+};
+
+export const deleteFinancialTransactionApi = async (projectId, txId) => {
+  return await apiClient(`/projects/${projectId}/financials/transactions/${txId}`, {
+    method: 'DELETE',
+  });
+};
+
+export const unlockProjectFinancialsApi = async (projectId, password) => {
+  const res = await apiClient(`/projects/${projectId}/financials/unlock`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  });
+  if (res.financialToken) {
+    try {
+      sessionStorage.setItem('buildops_financial_token', res.financialToken);
+    } catch (e) {}
+  }
+  return res;
+};
+
+export const lockProjectFinancialsApi = async (projectId) => {
+  try {
+    sessionStorage.removeItem('buildops_financial_token');
+  } catch (e) {}
+  return await apiClient(`/projects/${projectId}/financials/lock`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+};
+
+export const getFinancialStatusApi = async () => {
+  return await apiClient('/financials/status');
+};
+
+export const setupFinancialPasswordApi = async (password, confirmPassword) => {
+  return await apiClient('/financials/setup-password', {
+    method: 'POST',
+    body: JSON.stringify({ password, confirmPassword }),
+  });
+};
+
 
 
 

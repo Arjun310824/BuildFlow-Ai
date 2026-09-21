@@ -33,6 +33,19 @@ const userSchema = new mongoose.Schema(
       ref: 'Organization',
       index: true,
     },
+    financialAccessPasswordHash: {
+      type: String,
+      select: false,
+      default: null,
+    },
+    financialFailedAttempts: {
+      type: Number,
+      default: 0,
+    },
+    financialLockUntil: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -58,6 +71,46 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+// Set and hash Financial Security Password
+userSchema.methods.setFinancialPassword = async function (newPassword) {
+  const salt = await bcrypt.genSalt(10);
+  this.financialAccessPasswordHash = await bcrypt.hash(newPassword, salt);
+  this.financialFailedAttempts = 0;
+  this.financialLockUntil = null;
+  return this.save();
+};
+
+// Compare candidate Financial Security Password
+userSchema.methods.compareFinancialPassword = async function (candidatePassword) {
+  if (!this.financialAccessPasswordHash) {
+    return false;
+  }
+  return await bcrypt.compare(candidatePassword, this.financialAccessPasswordHash);
+};
+
+// Check if financial unlock is temporarily locked out due to failed attempts
+userSchema.methods.isFinancialRateLimited = function () {
+  return Boolean(this.financialLockUntil && this.financialLockUntil > new Date());
+};
+
+// Record failed financial unlock attempt and trigger 15-min cooldown if >= 5 attempts
+userSchema.methods.recordFailedFinancialAttempt = async function () {
+  this.financialFailedAttempts = (this.financialFailedAttempts || 0) + 1;
+  if (this.financialFailedAttempts >= 5) {
+    this.financialLockUntil = new Date(Date.now() + 15 * 60 * 1000); // 15-minute cooldown
+  }
+  return this.save();
+};
+
+// Reset failed attempts upon successful financial unlock
+userSchema.methods.resetFinancialAttempts = async function () {
+  if (this.financialFailedAttempts > 0 || this.financialLockUntil) {
+    this.financialFailedAttempts = 0;
+    this.financialLockUntil = null;
+    return this.save();
+  }
+};
+
 // Safe representation without sensitive fields
 userSchema.methods.toSafeObject = function () {
   return {
@@ -67,6 +120,7 @@ userSchema.methods.toSafeObject = function () {
     email: this.email,
     role: this.role,
     organizationId: this.organizationId ? this.organizationId.toString() : null,
+    hasFinancialPassword: Boolean(this.financialAccessPasswordHash),
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
   };

@@ -1,7 +1,11 @@
 import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
 import Project from '../models/Project.js';
 import Task from '../models/Task.js';
 import Material from '../models/Material.js';
+import User from '../models/User.js';
+import { ProjectFinancialTransaction } from '../models/ProjectFinancialTransaction.js';
+import { calculateFinancialMetrics } from '../controllers/financialController.js';
 import { calculateProjectRisksFromData, detectPortfolioRisks } from './riskAnalysisService.js';
 
 /**
@@ -17,20 +21,53 @@ export const isValidObjectId = (id) => {
  * Retrieves and compiles strictly factual, real-time MongoDB data for a project
  * Executes parallel database queries for optimal performance.
  * @param {string} projectId
+ * @param {Object} [options]
  * @returns {Promise<Object>} Structured project context
  */
-export const getProjectContext = async (projectId) => {
+export const getProjectContext = async (projectId, options = {}) => {
   if (!projectId || !isValidObjectId(projectId)) {
     const error = new Error('Invalid project ID provided.');
     error.statusCode = 400;
     throw error;
   }
 
-  // 1. Concurrently fetch Project, Tasks, and Materials using Promise.all for high performance
-  const [project, tasks, materials] = await Promise.all([
+  // Check if financial authorization is locked by secondary password
+  let isFinancialLocked = false;
+  if (options && options.user) {
+    try {
+      const userDoc = await User.findById(options.user._id || options.user.id)
+        .select('+financialAccessPasswordHash')
+        .lean();
+      if (userDoc && userDoc.financialAccessPasswordHash) {
+        const financialToken = options.financialToken;
+        if (financialToken) {
+          try {
+            const decoded = jwt.verify(financialToken, process.env.JWT_SECRET);
+            if (
+              decoded.scope !== 'financial_access' ||
+              decoded.userId !== (options.user._id || options.user.id).toString() ||
+              decoded.projectId !== projectId.toString()
+            ) {
+              isFinancialLocked = true;
+            }
+          } catch (tokErr) {
+            isFinancialLocked = true;
+          }
+        } else {
+          isFinancialLocked = true;
+        }
+      }
+    } catch (uErr) {
+      console.warn('[projectDataService] User financial status check error:', uErr.message);
+    }
+  }
+
+  // 1. Concurrently fetch Project, Tasks, Materials, and Financial Records using Promise.all
+  const [project, tasks, materials, financialRecords] = await Promise.all([
     Project.findById(projectId).lean(),
     Task.find({ projectId }).sort({ dueDate: 1 }).lean(),
     Material.find({ projectId }).sort({ name: 1 }).lean(),
+    isFinancialLocked ? Promise.resolve([]) : ProjectFinancialTransaction.find({ projectId }).sort({ date: -1 }).lean(),
   ]);
 
   if (!project) {
@@ -150,6 +187,27 @@ export const getProjectContext = async (projectId) => {
     },
     // 5. Deterministic Risk Detection (Task 9 Backend Calculated Rules)
     riskAnalysis: calculateProjectRisksFromData(project, tasks, materials, now),
+    // 6. Project Financial Metrics (Task 2 & 22 Real MongoDB Data)
+    financials: isFinancialLocked
+      ? {
+          isLocked: true,
+          hasData: false,
+          message: 'Project financials are locked behind secondary password authorization.',
+        }
+      : {
+          isLocked: false,
+          hasData: financialRecords.length > 0,
+          ...calculateFinancialMetrics(financialRecords),
+          recentTransactions: financialRecords.slice(0, 8).map((r) => ({
+            date: r.date ? new Date(r.date).toISOString().split('T')[0] : null,
+            type: r.type,
+            category: r.category,
+            amount: r.amount,
+            description: r.description,
+            vendor: r.vendor || r.vendorOrClient || '',
+            paymentStatus: r.paymentStatus,
+          })),
+        },
   };
 };
 
@@ -158,9 +216,10 @@ export const getProjectContext = async (projectId) => {
  * - If a specific project is selected: queries ONLY that project, its tasks, and materials (avoids querying entire DB).
  * - If 'all' or omitted: queries portfolio summary across all projects concurrently.
  * @param {string} [projectId]
+ * @param {Object} [options]
  * @returns {Promise<Object>}
  */
-export const getChatContext = async (projectId) => {
+export const getChatContext = async (projectId, options = {}) => {
   if (projectId && projectId !== 'all') {
     if (!isValidObjectId(projectId)) {
       const error = new Error(`Invalid project ID format: ${projectId}`);
@@ -168,7 +227,7 @@ export const getChatContext = async (projectId) => {
       throw error;
     }
 
-    const selectedProject = await getProjectContext(projectId);
+    const selectedProject = await getProjectContext(projectId, options);
     return {
       type: 'single_project',
       project: selectedProject,
@@ -327,7 +386,7 @@ export const formatProjectContextForAI = (contextData) => {
   const referenceDate = contextData.referenceDate || new Date().toISOString().split('T')[0];
 
   if (contextData.type === 'single_project' && contextData.project) {
-    const { project, tasks, materials, calculatedMetrics, riskAnalysis } = contextData.project;
+    const { project, tasks, materials, calculatedMetrics, riskAnalysis, financials } = contextData.project;
 
     const projectInfo = [
       `=== PROJECT CONTEXT (MongoDB Source of Truth - Current Date: ${referenceDate}) ===`,
@@ -406,7 +465,35 @@ ${r.evidence.map((ev) => `   - ${ev}`).join('\n')}
       }
     }
 
-    return [projectInfo, tasksInfo, materialsInfo, risksInfo].filter(Boolean).join('\n\n');
+    // Project Financials Summary (Real MongoDB Transactions)
+    let financialsInfo = '';
+    if (financials?.isLocked) {
+      financialsInfo = `=== PROJECT FINANCIALS (PROTECTED & LOCKED) ===
+• Status: Financial records are protected and locked behind secondary financial authorization.
+• SECURITY RESTRICTION: The user has not authenticated financial access with their security password. Do NOT expose, calculate, or invent any financial figures (Revenue, Expenses, Profit, Loss, Profit Margin). If asked about financials, clearly state: "Project financials are locked and require secondary financial password authorization."`;
+    } else if (!financials || !financials.hasData) {
+      financialsInfo = `=== PROJECT FINANCIALS ===\nI don't have financial data for this project yet.`;
+    } else {
+      financialsInfo = [
+        `=== PROJECT FINANCIALS (MongoDB Source of Truth) ===`,
+        `• Financial Status: ${financials.financialStatus}`,
+        `• Total Revenue: ₹${financials.totalRevenue.toLocaleString('en-IN')}`,
+        `• Total Expenses: ₹${financials.totalExpenses.toLocaleString('en-IN')}`,
+        `• Net Profit / Loss: ₹${(financials.profit > 0 ? financials.profit : -financials.loss).toLocaleString('en-IN')} (${financials.isProfit ? 'Profit' : 'Loss'})`,
+        `• Profit Margin: ${financials.profitMargin}%`,
+        `• Category Expense Breakdown:`,
+        `  - Material: ₹${(financials.expenseBreakdown.Material || 0).toLocaleString('en-IN')}`,
+        `  - Labour: ₹${(financials.expenseBreakdown.Labour || 0).toLocaleString('en-IN')}`,
+        `  - Equipment: ₹${(financials.expenseBreakdown.Equipment || 0).toLocaleString('en-IN')}`,
+        `  - Transportation: ₹${(financials.expenseBreakdown.Transportation || 0).toLocaleString('en-IN')}`,
+        `  - Subcontractor: ₹${(financials.expenseBreakdown.Subcontractor || 0).toLocaleString('en-IN')}`,
+        `  - Utilities: ₹${(financials.expenseBreakdown.Utilities || 0).toLocaleString('en-IN')}`,
+        `  - Site Expense: ₹${(financials.expenseBreakdown['Site Expense'] || 0).toLocaleString('en-IN')}`,
+        `  - Other: ₹${(financials.expenseBreakdown.Other || 0).toLocaleString('en-IN')}`,
+      ].join('\n');
+    }
+
+    return [projectInfo, tasksInfo, materialsInfo, financialsInfo, risksInfo].filter(Boolean).join('\n\n');
   }
 
   if (contextData.type === 'all_projects' && Array.isArray(contextData.portfolio)) {

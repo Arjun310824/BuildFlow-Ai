@@ -98,6 +98,11 @@ export const buildDeterministicReportData = async (projectId, reportType = 'Proj
       observations.push('Site activities and material inventory remain aligned with baseline project schedule.');
     }
 
+    if (context.project?.financials?.hasData) {
+      const f = context.project.financials;
+      observations.push(`Project Financial Performance: Total Revenue ₹${f.totalRevenue.toLocaleString('en-IN')}, Total Expenses ₹${f.totalExpenses.toLocaleString('en-IN')}, resulting in a ${f.isProfit ? 'Net Profit' : 'Net Loss'} of ₹${(f.profit > 0 ? f.profit : f.loss).toLocaleString('en-IN')} (Profit Margin: ${f.profitMargin}%). Status: ${f.financialStatus}.`);
+    }
+
     // Recommended actions pre-computed from database facts
     const actions = [];
     if (delayedTasksList.length > 0 || overdueTasksList.length > 0) {
@@ -193,6 +198,7 @@ export const buildDeterministicReportData = async (projectId, reportType = 'Proj
         evidence: r.evidence,
         recommendation: r.recommendation,
       })),
+      financialSummary: context.project?.financials || null,
       keyObservations: observations,
       recommendedActions: actions,
     };
