@@ -1721,7 +1721,6 @@ textarea.form-control {
 
 .timeline-task-row {
   display: grid;
-  grid-templateColumns: 260px 120px 1fr 120px;
   grid-template-columns: 260px 120px 1fr 120px;
   padding: 14px 18px;
   border-bottom: 1px solid var(--border-light);
