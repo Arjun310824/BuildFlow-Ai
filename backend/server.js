@@ -20,7 +20,12 @@ import organizationRoutes from './routes/organizationRoutes.js';
 import businessConnectionRoutes from './routes/businessConnectionRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import businessTransactionRoutes from './routes/businessTransactionRoutes.js';
+<<<<<<< HEAD
 import financialRoutes from './routes/financialRoutes.js';
+=======
+import siteUpdateRoutes from './routes/siteUpdateRoutes.js';
+import documentRoutes from './routes/documentRoutes.js';
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
 import { protect } from './middleware/auth.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
 
@@ -48,7 +53,12 @@ app.use('/api/organizations', protect, organizationRoutes);
 app.use('/api/business-connections', protect, businessConnectionRoutes);
 app.use('/api/notifications', protect, notificationRoutes);
 app.use('/api/business-transactions', protect, businessTransactionRoutes);
+<<<<<<< HEAD
 app.use('/api/financials', protect, financialRoutes);
+=======
+app.use('/api/site-updates', protect, siteUpdateRoutes);
+app.use('/api/documents', protect, documentRoutes);
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
 
 // Fallback for undefined routes (404)
 app.use(notFound);

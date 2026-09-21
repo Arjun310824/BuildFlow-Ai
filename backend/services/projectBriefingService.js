@@ -12,10 +12,11 @@ import { callGemini, extractAndValidateSourcesAndConfidence, getGeminiClient } f
 /**
  * Compiles strictly deterministic briefing metrics for a single project or portfolio
  * @param {string} projectId - Project ObjectId or 'all'
+ * @param {string|ObjectId} [organizationId=null] - Caller's organization ID
  * @returns {Promise<Object>}
  */
-export const buildDeterministicBriefingData = async (projectId) => {
-  const context = await getChatContext(projectId);
+export const buildDeterministicBriefingData = async (projectId, organizationId = null) => {
+  const context = await getChatContext(projectId, organizationId);
 
   if (context.type === 'single_project') {
     const p = context.project.project;
@@ -294,7 +295,7 @@ export const formatDeterministicBriefingFallback = (data) => {
  * @param {string} projectId - Valid ObjectId string or 'all'
  * @returns {Promise<{ answer: string, sources: Array<{ type: string, label: string }>, confidence: string, briefingData: Object, projectId: string }>}
  */
-export const generateProjectBriefing = async (projectId) => {
+export const generateProjectBriefing = async (projectId, organizationId = null) => {
   // 1. Validate projectId
   if (projectId && projectId !== 'all' && !isValidObjectId(projectId)) {
     const error = new Error(`Invalid project ID format: ${projectId}`);
@@ -302,8 +303,8 @@ export const generateProjectBriefing = async (projectId) => {
     throw error;
   }
 
-  // 2. Fetch deterministic facts from MongoDB
-  const briefingData = await buildDeterministicBriefingData(projectId);
+  // 2. Fetch deterministic facts from MongoDB scoped to organization
+  const briefingData = await buildDeterministicBriefingData(projectId, organizationId);
 
   // 3. Prepare Sources list based on data used
   const sources = [{ type: 'project', label: 'Project Data' }];

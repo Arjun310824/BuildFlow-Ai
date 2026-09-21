@@ -82,9 +82,9 @@ export const validateAndNormalizeAnalysis = (rawAnalysis, context) => {
  * @param {string} projectId
  * @returns {Promise<Object>}
  */
-export const analyzeProject = async (projectId) => {
-  // 1. Fetch live MongoDB project data & calculated metrics
-  const context = await getProjectContext(projectId);
+export const analyzeProject = async (projectId, organizationId = null) => {
+  // 1. Fetch live MongoDB project data & calculated metrics scoped to organization
+  const context = await getProjectContext(projectId, organizationId);
 
   // 2. Call Gemini AI Engine with strictly grounded context
   const rawAiResult = await generateProjectAnalysis(context);
@@ -112,6 +112,7 @@ export const analyzeProject = async (projectId) => {
  * @param {Array} [images=[]]
  * @param {Array} [documents=[]]
  * @param {Array} [conversationHistory=[]]
+ * @param {string|ObjectId} [organizationId=null]
  * @returns {Promise<{ answer: string, sources: Array<{ type: string, label: string }>, confidence: string }>}
  */
 export const chatWithProject = async (
@@ -120,7 +121,11 @@ export const chatWithProject = async (
   images = [],
   documents = [],
   conversationHistory = [],
+<<<<<<< HEAD
   options = {}
+=======
+  organizationId = null
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
 ) => {
   const hasImages = Array.isArray(images) && images.length > 0;
   const hasDocs = Array.isArray(documents) && documents.length > 0;
@@ -132,8 +137,13 @@ export const chatWithProject = async (
     throw error;
   }
 
+<<<<<<< HEAD
   // Fetch real project data + portfolio summary (validates project existence)
   const context = await getChatContext(projectId, options);
+=======
+  // Fetch real project data + portfolio summary scoped to organization (validates project existence)
+  const context = await getChatContext(projectId, organizationId);
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
 
   // Query Gemini with context + user message + images + documents + conversation history
   return await generateProjectChatResponse(context, cleanMessage, images, documents, conversationHistory);

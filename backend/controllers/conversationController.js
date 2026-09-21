@@ -54,15 +54,24 @@ export const generateConversationTitle = (message, projectName) => {
 };
 
 /**
- * @desc   Get all conversations sorted by last update
+ * @desc   Get all conversations sorted by last update within authorized organization & user
  * @route  GET /api/ai/conversations
- * @access Public
+ * @access Private (JWT protected)
  */
 export const getConversations = async (req, res, next) => {
   try {
-    const userId = req.headers['x-user-id'] || req.query.userId || 'default-user';
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?._id;
 
-    const conversations = await Conversation.find({ userId })
+    if (!organizationId || !userId) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: [],
+      });
+    }
+
+    const conversations = await Conversation.find({ organizationId, userId })
       .sort({ updatedAt: -1 })
       .select('title projectId projectName createdAt updatedAt messages')
       .lean();
@@ -93,13 +102,14 @@ export const getConversations = async (req, res, next) => {
 };
 
 /**
- * @desc   Get single conversation by ID with full message list
+ * @desc   Get single conversation by ID with full message list (IDOR protected)
  * @route  GET /api/ai/conversations/:id
- * @access Public
+ * @access Private (JWT protected)
  */
 export const getConversationById = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const organizationId = req.user?.organizationId;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -108,7 +118,7 @@ export const getConversationById = async (req, res, next) => {
       });
     }
 
-    const conversation = await Conversation.findById(id).lean();
+    const conversation = await Conversation.findOne({ _id: id, organizationId }).lean();
     if (!conversation) {
       return res.status(404).json({
         success: false,
@@ -129,23 +139,49 @@ export const getConversationById = async (req, res, next) => {
 };
 
 /**
- * @desc   Create a new conversation
+ * @desc   Create a new conversation scoped to caller's organization & user
  * @route  POST /api/ai/conversations
- * @access Public
+ * @access Private (JWT protected)
  */
 export const createConversation = async (req, res, next) => {
   try {
+<<<<<<< HEAD
     const { title, projectId, projectName, userId } = req.body;
     const currentUserId = req.user?._id?.toString() || userId || 'default-user';
+=======
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?._id;
+
+    if (!organizationId || !userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. Organization membership required.',
+      });
+    }
+
+    const { title, projectId, projectName } = req.body;
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
 
     let resolvedProjectName = projectName || 'All Projects';
     let validProjectId = null;
 
     if (projectId && projectId !== 'all' && mongoose.Types.ObjectId.isValid(projectId)) {
+<<<<<<< HEAD
       validProjectId = projectId;
       const proj = await Project.findById(projectId).select('name organizationId').lean();
       if (!proj) {
         return res.status(404).json({ success: false, error: `Project not found with ID ${projectId}` });
+=======
+      const proj = await Project.findOne({ _id: projectId, organizationId }).select('name').lean();
+      if (proj) {
+        validProjectId = projectId;
+        resolvedProjectName = proj.name;
+      } else {
+        return res.status(404).json({
+          success: false,
+          error: `Project with ID ${projectId} not found or access denied.`,
+        });
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
       }
       if (req.user?.organizationId && proj.organizationId) {
         if (proj.organizationId.toString() !== req.user.organizationId.toString()) {
@@ -159,7 +195,12 @@ export const createConversation = async (req, res, next) => {
 
     const conversation = await Conversation.create({
       title: initialTitle.slice(0, 100),
+<<<<<<< HEAD
       userId: currentUserId,
+=======
+      userId,
+      organizationId,
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
       projectId: validProjectId,
       projectName: resolvedProjectName,
       messages: [],
@@ -178,13 +219,18 @@ export const createConversation = async (req, res, next) => {
 };
 
 /**
- * @desc   Send a message to an existing conversation (saves user msg, queries Gemini, saves assistant msg)
+ * @desc   Send a message to an existing conversation (IDOR protected)
  * @route  POST /api/ai/conversations/:id/messages
+<<<<<<< HEAD
  * @access Public / Authenticated
+=======
+ * @access Private (JWT protected)
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
  */
 export const sendMessageToConversation = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const organizationId = req.user?.organizationId;
     const { message, images = [], documents = [], projectId } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -194,7 +240,7 @@ export const sendMessageToConversation = async (req, res, next) => {
       });
     }
 
-    const conversation = await Conversation.findById(id);
+    const conversation = await Conversation.findOne({ _id: id, organizationId });
     if (!conversation) {
       return res.status(404).json({
         success: false,
@@ -222,6 +268,7 @@ export const sendMessageToConversation = async (req, res, next) => {
     // Update conversation project if changed in request & verify organization access
     if (projectId !== undefined) {
       if (projectId && projectId !== 'all' && mongoose.Types.ObjectId.isValid(projectId)) {
+<<<<<<< HEAD
         const pRecord = await Project.findById(projectId).select('name organizationId').lean();
         if (!pRecord) {
           return res.status(404).json({ success: false, error: 'Project not found in database.' });
@@ -230,6 +277,14 @@ export const sendMessageToConversation = async (req, res, next) => {
           if (pRecord.organizationId.toString() !== req.user.organizationId.toString()) {
             return res.status(403).json({ success: false, error: 'Access denied: Project belongs to a different organization.' });
           }
+=======
+        const pRecord = await Project.findOne({ _id: projectId, organizationId }).select('name').lean();
+        if (!pRecord) {
+          return res.status(404).json({
+            success: false,
+            error: `Target project with ID "${projectId}" not found or access denied.`,
+          });
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
         }
         conversation.projectId = projectId;
         conversation.projectName = pRecord.name;
@@ -246,7 +301,7 @@ export const sendMessageToConversation = async (req, res, next) => {
       }
     }
 
-    // Build image metadata for MongoDB storage (NO large binary storage!)
+    // Build image metadata for MongoDB storage
     const imageMeta = hasImages
       ? images.map((img) => ({
           name: img.name || 'image.png',
@@ -255,7 +310,7 @@ export const sendMessageToConversation = async (req, res, next) => {
         }))
       : [];
 
-    // Build document metadata for MongoDB storage (NO large binary storage!)
+    // Build document metadata for MongoDB storage
     const documentMeta = hasDocs
       ? documents.map((doc) => ({
           name: doc.name || 'document.pdf',
@@ -280,6 +335,7 @@ export const sendMessageToConversation = async (req, res, next) => {
       content: m.content,
     }));
 
+<<<<<<< HEAD
     // 3. Extract financial token if present
     const financialToken =
       req.headers['x-financial-access-token'] ||
@@ -288,6 +344,9 @@ export const sendMessageToConversation = async (req, res, next) => {
       req.query.financialToken;
 
     // 4. Call Gemini with Real Project Context, Images, Documents, and Financial Protection
+=======
+    // 3. Call Gemini with Real Project Context scoped strictly to caller's organization
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
     let chatResult = null;
     try {
       chatResult = await chatWithProject(
@@ -296,14 +355,17 @@ export const sendMessageToConversation = async (req, res, next) => {
         images,
         documents,
         recentHistory,
+<<<<<<< HEAD
         {
           user: req.user,
           financialToken,
         }
+=======
+        organizationId
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
       );
     } catch (apiError) {
       console.error(`[Conversation AI Error] ${apiError.message}`);
-      // If validation error (400) or not found (404), return immediately WITHOUT saving fake message
       const status = apiError.statusCode || 502;
       return res.status(status).json({
         success: false,
@@ -349,13 +411,14 @@ export const sendMessageToConversation = async (req, res, next) => {
 };
 
 /**
- * @desc   Delete conversation by ID
+ * @desc   Delete conversation by ID (IDOR protected)
  * @route  DELETE /api/ai/conversations/:id
- * @access Public
+ * @access Private (JWT protected)
  */
 export const deleteConversation = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const organizationId = req.user?.organizationId;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -364,7 +427,7 @@ export const deleteConversation = async (req, res, next) => {
       });
     }
 
-    const conversation = await Conversation.findByIdAndDelete(id);
+    const conversation = await Conversation.findOneAndDelete({ _id: id, organizationId });
     if (!conversation) {
       return res.status(404).json({
         success: false,

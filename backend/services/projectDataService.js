@@ -24,13 +24,18 @@ export const isValidObjectId = (id) => {
  * @param {Object} [options]
  * @returns {Promise<Object>} Structured project context
  */
+<<<<<<< HEAD
 export const getProjectContext = async (projectId, options = {}) => {
+=======
+export const getProjectContext = async (projectId, organizationId = null) => {
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
   if (!projectId || !isValidObjectId(projectId)) {
     const error = new Error('Invalid project ID provided.');
     error.statusCode = 400;
     throw error;
   }
 
+<<<<<<< HEAD
   // Check if financial authorization is locked by secondary password
   let isFinancialLocked = false;
   if (options && options.user) {
@@ -69,12 +74,32 @@ export const getProjectContext = async (projectId, options = {}) => {
     Material.find({ projectId }).sort({ name: 1 }).lean(),
     isFinancialLocked ? Promise.resolve([]) : ProjectFinancialTransaction.find({ projectId }).sort({ date: -1 }).lean(),
   ]);
+=======
+  const projectQuery = { _id: projectId };
+  if (organizationId) {
+    projectQuery.organizationId = organizationId;
+  }
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
 
+  // 1. Concurrently fetch Project, Tasks, and Materials using Promise.all for high performance
+  const project = await Project.findOne(projectQuery).lean();
   if (!project) {
-    const error = new Error(`Project with ID ${projectId} not found in database.`);
+    const error = new Error(`Project with ID ${projectId} not found in database or access denied.`);
     error.statusCode = 404;
     throw error;
   }
+
+  const taskQuery = { projectId: project._id };
+  const matQuery = { projectId: project._id };
+  if (organizationId) {
+    taskQuery.organizationId = organizationId;
+    matQuery.organizationId = organizationId;
+  }
+
+  const [tasks, materials] = await Promise.all([
+    Task.find(taskQuery).sort({ dueDate: 1 }).lean(),
+    Material.find(matQuery).sort({ name: 1 }).lean(),
+  ]);
 
   const now = new Date();
   const endOfWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -219,7 +244,11 @@ export const getProjectContext = async (projectId, options = {}) => {
  * @param {Object} [options]
  * @returns {Promise<Object>}
  */
+<<<<<<< HEAD
 export const getChatContext = async (projectId, options = {}) => {
+=======
+export const getChatContext = async (projectId, organizationId = null) => {
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
   if (projectId && projectId !== 'all') {
     if (!isValidObjectId(projectId)) {
       const error = new Error(`Invalid project ID format: ${projectId}`);
@@ -227,7 +256,11 @@ export const getChatContext = async (projectId, options = {}) => {
       throw error;
     }
 
+<<<<<<< HEAD
     const selectedProject = await getProjectContext(projectId, options);
+=======
+    const selectedProject = await getProjectContext(projectId, organizationId);
+>>>>>>> 948556e7844ca4bdaafc85fb420b95e6606f94b5
     return {
       type: 'single_project',
       project: selectedProject,
@@ -242,11 +275,15 @@ export const getChatContext = async (projectId, options = {}) => {
 
   const now = new Date();
 
-  // Concurrently fetch all projects, tasks, and materials using Promise.all
+  // Concurrently fetch projects, tasks, and materials strictly scoped to caller's organization
+  const projectFilter = organizationId ? { organizationId } : {};
+  const taskFilter = organizationId ? { organizationId } : {};
+  const matFilter = organizationId ? { organizationId } : {};
+
   const [allProjects, allTasks, allMaterials] = await Promise.all([
-    Project.find({}).sort({ name: 1 }).lean(),
-    Task.find({}).lean(),
-    Material.find({}).lean(),
+    Project.find(projectFilter).sort({ name: 1 }).lean(),
+    Task.find(taskFilter).lean(),
+    Material.find(matFilter).lean(),
   ]);
 
   // Deterministic Macro Portfolio Calculations

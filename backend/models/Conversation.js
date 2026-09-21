@@ -65,8 +65,15 @@ const conversationSchema = new mongoose.Schema(
       maxlength: [100, 'Title cannot exceed 100 characters'],
     },
     userId: {
-      type: String,
-      default: 'default-user',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'User ID is required'],
+      index: true,
+    },
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: [true, 'Organization ID is required'],
       index: true,
     },
     projectId: {

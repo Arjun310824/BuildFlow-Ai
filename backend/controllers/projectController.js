@@ -2,17 +2,30 @@ import { projectService } from '../services/projectService.js';
 
 /**
  * Controller handling HTTP requests for Project endpoints
+ * Enforces organization isolation and IDOR protection.
  */
 export const projectController = {
   /**
    * @route   GET /api/projects
-   * @desc    Retrieve all construction projects
-   * @access  Public
+   * @desc    Retrieve all construction projects for caller's organization
+   * @access  Private (JWT protected)
    */
   async getProjects(req, res, next) {
     try {
+      const organizationId = req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(200).json({
+          success: true,
+          count: 0,
+          data: [],
+        });
+      }
+
       const { status, risk, search } = req.query;
-      const projects = await projectService.getAllProjects({ status, risk, search });
+      const projects = await projectService.getAllProjects(
+        { status, risk, search },
+        organizationId
+      );
 
       res.status(200).json({
         success: true,
@@ -26,13 +39,15 @@ export const projectController = {
 
   /**
    * @route   GET /api/projects/:id
-   * @desc    Retrieve a single project by its ID
-   * @access  Public
+   * @desc    Retrieve a single project by ID (IDOR protected by organization)
+   * @access  Private (JWT protected)
    */
   async getProjectById(req, res, next) {
     try {
       const { id } = req.params;
-      const project = await projectService.getProjectById(id);
+      const organizationId = req.user?.organizationId;
+
+      const project = await projectService.getProjectById(id, organizationId);
 
       if (!project) {
         return res.status(404).json({
@@ -52,11 +67,19 @@ export const projectController = {
 
   /**
    * @route   POST /api/projects
-   * @desc    Create a new construction project
-   * @access  Public
+   * @desc    Create a new construction project scoped to caller's organization
+   * @access  Private (JWT protected)
    */
   async createProject(req, res, next) {
     try {
+      const organizationId = req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Organization membership required to create projects.',
+        });
+      }
+
       const { name, client, location, manager, startDate, endDate, progress, status, risk } = req.body;
 
       const projectData = {
@@ -69,7 +92,8 @@ export const projectController = {
         progress: progress !== undefined && progress !== '' ? Number(progress) : 0,
         status: status || 'Planning',
         risk: risk || 'Low',
-        organizationId: req.user?.organizationId || req.body.organizationId || null,
+        // Server-side assignment only - ignore client payload
+        organizationId,
       };
 
       const newProject = await projectService.createProject(projectData);
@@ -86,12 +110,13 @@ export const projectController = {
 
   /**
    * @route   PUT /api/projects/:id
-   * @desc    Update an existing construction project
-   * @access  Public
+   * @desc    Update an existing construction project (IDOR protected)
+   * @access  Private (JWT protected)
    */
   async updateProject(req, res, next) {
     try {
       const { id } = req.params;
+      const organizationId = req.user?.organizationId;
       const updatePayload = { ...req.body };
 
       // Trim string inputs if present
@@ -103,7 +128,7 @@ export const projectController = {
         updatePayload.progress = Number(updatePayload.progress);
       }
 
-      const updatedProject = await projectService.updateProject(id, updatePayload);
+      const updatedProject = await projectService.updateProject(id, updatePayload, organizationId);
 
       if (!updatedProject) {
         return res.status(404).json({
@@ -124,13 +149,15 @@ export const projectController = {
 
   /**
    * @route   DELETE /api/projects/:id
-   * @desc    Delete a construction project by ID
-   * @access  Public
+   * @desc    Delete a construction project by ID (IDOR protected)
+   * @access  Private (JWT protected)
    */
   async deleteProject(req, res, next) {
     try {
       const { id } = req.params;
-      const deletedProject = await projectService.deleteProject(id);
+      const organizationId = req.user?.organizationId;
+
+      const deletedProject = await projectService.deleteProject(id, organizationId);
 
       if (!deletedProject) {
         return res.status(404).json({
