@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
 import { analyzeProject as analyzeProjectService, chatWithProject } from '../services/projectAnalysisService.js';
 import Project from '../models/Project.js';
+import Task from '../models/Task.js';
+import Material from '../models/Material.js';
+import Conversation from '../models/Conversation.js';
 import { analyzeProjectWithAI } from '../services/aiService.js';
 import { detectProjectRisks, detectPortfolioRisks } from '../services/riskAnalysisService.js';
 import { generateProjectBriefing } from '../services/projectBriefingService.js';
@@ -9,10 +12,11 @@ import { generateProjectReport } from '../services/projectReportService.js';
 /**
  * @desc   Analyze a specific construction project using real MongoDB data and Gemini AI
  * @route  POST /api/ai/analyze-project
- * @access Public
+ * @access Private (JWT protected)
  */
 export const handleAnalyzeProject = async (req, res, next) => {
   try {
+    const organizationId = req.user?.organizationId;
     const { projectId } = req.body;
 
     if (!projectId) {
@@ -23,7 +27,23 @@ export const handleAnalyzeProject = async (req, res, next) => {
       });
     }
 
-    const result = await analyzeProjectService(projectId);
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid project ID format: ${projectId}`,
+      });
+    }
+
+    // Verify project belongs to caller's organization
+    const projectExists = await Project.findOne({ _id: projectId, organizationId });
+    if (!projectExists) {
+      return res.status(404).json({
+        success: false,
+        error: `Project with ID "${projectId}" not found or access denied.`,
+      });
+    }
+
+    const result = await analyzeProjectService(projectId, organizationId);
 
     return res.status(200).json({
       success: true,
@@ -33,38 +53,6 @@ export const handleAnalyzeProject = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-};
-
-/**
- * Safely resolves registered Mongoose models or dynamically imports them from models folder.
- *
- * @param {string} modelName - Model name ('Project', 'Task', 'Material').
- * @returns {Promise<mongoose.Model|null>}
- */
-const resolveModel = async (modelName) => {
-  try {
-    if (mongoose.models[modelName]) return mongoose.models[modelName];
-    if (mongoose.modelNames().includes(modelName)) return mongoose.model(modelName);
-  } catch {
-    // Continue to check file paths
-  }
-
-  const paths = [
-    `../models/${modelName}.js`,
-    `../models/${modelName.toLowerCase()}.js`,
-  ];
-
-  for (const p of paths) {
-    try {
-      const module = await import(p);
-      const m = module.default || module[modelName] || mongoose.models[modelName];
-      if (m) return m;
-    } catch {
-      // Path not found, try next
-    }
-  }
-
-  return null;
 };
 
 /**
@@ -78,6 +66,7 @@ const resolveModel = async (modelName) => {
 export const getProjectAnalysis = async (req, res, next) => {
   try {
     const { projectId } = req.params;
+    const organizationId = req.user?.organizationId;
 
     // 1. Validate missing project ID
     if (!projectId || !projectId.trim()) {
@@ -89,66 +78,46 @@ export const getProjectAnalysis = async (req, res, next) => {
 
     const cleanProjectId = projectId.trim();
 
-    // 2. Resolve Mongoose models
-    const Project = await resolveModel('Project');
-    const Task = await resolveModel('Task');
-    const Material = await resolveModel('Material');
-
     let project = null;
     let tasks = [];
     let materials = [];
 
-    // 3. Query Database if Project model exists
-    if (Project) {
-      try {
-        if (mongoose.Types.ObjectId.isValid(cleanProjectId)) {
-          project = await Project.findById(cleanProjectId).lean();
-        }
-        if (!project) {
-          project = await Project.findOne({
-            $or: [{ id: cleanProjectId }, { name: cleanProjectId }],
-          }).lean();
-        }
-
-        if (project) {
-          // Fetch associated tasks
-          if (Task) {
-            tasks = await Task.find({
-              $or: [
-                { projectId: project._id },
-                { projectId: project.id },
-                { project: project.name },
-                { project: cleanProjectId },
-              ],
-            }).lean();
-          }
-
-          // Fetch associated materials
-          if (Material) {
-            materials = await Material.find({
-              $or: [
-                { projectId: project._id },
-                { projectId: project.id },
-                { project: project.name },
-                { project: cleanProjectId },
-              ],
-            }).lean();
-          }
-        }
-      } catch (dbError) {
-        console.error(`[AI Controller] Database error while querying project: ${dbError.message}`);
-        return res.status(500).json({
-          success: false,
-          message: `Database error occurred while retrieving project data: ${dbError.message}`,
-        });
+    // Query Database with organization scope
+    try {
+      if (mongoose.Types.ObjectId.isValid(cleanProjectId)) {
+        project = await Project.findOne({ _id: cleanProjectId, organizationId }).lean();
       }
+      if (!project) {
+        project = await Project.findOne({
+          name: cleanProjectId,
+          organizationId,
+        }).lean();
+      }
+
+      if (project) {
+        tasks = await Task.find({
+          projectId: project._id,
+          organizationId,
+        }).lean();
+
+        materials = await Material.find({
+          projectId: project._id,
+          organizationId,
+        }).lean();
+      }
+    } catch (dbError) {
+      console.error(`[AI Controller] Database error while querying project: ${dbError.message}`);
+      return res.status(500).json({
+        success: false,
+        message: `Database error occurred while retrieving project data: ${dbError.message}`,
+      });
     }
 
-    // 4. Handle project not found in MongoDB
+    // 4. Handle project not found in caller's organization
     if (!project) {
       return res.status(404).json({
         success: false,
-        message: `Project not found with ID: "${cleanProjectId}".`,
+        message: `Project not found with ID: "${cleanProjectId}" or access denied.`,
       });
     }
 
@@ -163,7 +132,6 @@ export const getProjectAnalysis = async (req, res, next) => {
     } catch (aiError) {
       console.error(`[AI Controller] AI Service failure: ${aiError.message}`);
 
-      // Missing or invalid API key configuration
       if (aiError.message.includes('GEMINI_API_KEY')) {
         return res.status(500).json({
           success: false,
@@ -171,7 +139,6 @@ export const getProjectAnalysis = async (req, res, next) => {
         });
       }
 
-      // Upstream Gemini API call or parsing failure
       return res.status(502).json({
         success: false,
         message: `Gemini AI analysis failed: ${aiError.message}`,
@@ -187,6 +154,7 @@ export const getProjectAnalysis = async (req, res, next) => {
  */
 export const analyzeProject = async (req, res, next) => {
   try {
+    const organizationId = req.user?.organizationId;
     const { projectData } = req.body;
 
     if (!projectData || (typeof projectData === 'object' && Object.keys(projectData).length === 0)) {
@@ -194,6 +162,18 @@ export const analyzeProject = async (req, res, next) => {
         success: false,
         message: 'Validation failed: "projectData" is required in request body.',
       });
+    }
+
+    // If an ID is provided, verify ownership
+    const targetId = projectData._id || projectData.id;
+    if (targetId && mongoose.Types.ObjectId.isValid(targetId)) {
+      const exists = await Project.findOne({ _id: targetId, organizationId });
+      if (!exists) {
+        return res.status(404).json({
+          success: false,
+          message: `Project not found or access denied.`,
+        });
+      }
     }
 
     const result = await analyzeProjectWithAI(projectData);
@@ -206,13 +186,15 @@ export const analyzeProject = async (req, res, next) => {
     next(error);
   }
 };
+
 /**
- * @desc   Ask project-aware questions grounded in actual MongoDB project telemetry
+ * @desc   Ask project-aware questions grounded in caller's organization MongoDB project telemetry
  * @route  POST /api/ai/chat
- * @access Public
+ * @access Private (JWT protected)
  */
 export const handleProjectChat = async (req, res, next) => {
   try {
+    const organizationId = req.user?.organizationId;
     const { projectId, message, images = [], documents = [], conversationHistory = [] } = req.body;
 
     const validProjectId = projectId && projectId !== 'all' ? projectId : null;
@@ -227,13 +209,31 @@ export const handleProjectChat = async (req, res, next) => {
       });
     }
 
+    // If target project is specified, verify ownership
+    if (validProjectId) {
+      if (!mongoose.Types.ObjectId.isValid(validProjectId)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid project ID format: ${validProjectId}`,
+        });
+      }
+      const projExists = await Project.findOne({ _id: validProjectId, organizationId });
+      if (!projExists) {
+        return res.status(404).json({
+          success: false,
+          error: `Project with ID "${validProjectId}" not found or access denied.`,
+        });
+      }
+    }
+
     try {
       const chatResult = await chatWithProject(
         validProjectId,
         cleanMessage,
         images,
         documents,
-        conversationHistory
+        conversationHistory,
+        organizationId
       );
 
       const answer = typeof chatResult === 'object' ? chatResult.answer : chatResult;
@@ -250,7 +250,6 @@ export const handleProjectChat = async (req, res, next) => {
     } catch (chatError) {
       console.error(`[AI Chat Error] ${chatError.message}`);
 
-      // Client validation errors (unsupported format, image too large, >3 images, 404 project not found)
       if (chatError.statusCode === 400 || chatError.statusCode === 404) {
         return res.status(chatError.statusCode).json({
           success: false,
@@ -258,7 +257,6 @@ export const handleProjectChat = async (req, res, next) => {
         });
       }
 
-      // Safe user-friendly failure response without leaking internal details or API keys
       return res.status(502).json({
         success: false,
         error: "BuildOps AI couldn't process this request right now. Please try again.",
@@ -270,13 +268,25 @@ export const handleProjectChat = async (req, res, next) => {
 };
 
 /**
- * @desc   List projects available in MongoDB for AI analysis selection
+ * @desc   List projects available in MongoDB for AI analysis selection scoped to caller's organization
  * @route  GET /api/ai/projects
- * @access Public
+ * @access Private (JWT protected)
  */
 export const handleGetAiProjects = async (req, res, next) => {
   try {
-    const projects = await Project.find({}, 'name client location progress status risk startDate endDate')
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: [],
+      });
+    }
+
+    const projects = await Project.find(
+      { organizationId },
+      'name client location progress status risk startDate endDate'
+    )
       .sort({ updatedAt: -1 })
       .lean();
 
@@ -291,13 +301,14 @@ export const handleGetAiProjects = async (req, res, next) => {
 };
 
 /**
- * @desc   Detect and analyze operational risks using real MongoDB project data (Task 9)
+ * @desc   Detect and analyze operational risks using authorized MongoDB project data
  * @route  GET /api/ai/project-risk/:projectId
- * @access Public
+ * @access Private (JWT protected)
  */
 export const handleGetProjectRisk = async (req, res, next) => {
   try {
     const { projectId } = req.params;
+    const organizationId = req.user?.organizationId;
 
     if (!projectId) {
       return res.status(400).json({
@@ -307,7 +318,7 @@ export const handleGetProjectRisk = async (req, res, next) => {
     }
 
     if (projectId === 'all') {
-      const portfolioAnalysis = await detectPortfolioRisks();
+      const portfolioAnalysis = await detectPortfolioRisks(new Date(), organizationId);
       return res.status(200).json({
         success: true,
         data: portfolioAnalysis,
@@ -321,7 +332,16 @@ export const handleGetProjectRisk = async (req, res, next) => {
       });
     }
 
-    const projectAnalysis = await detectProjectRisks(projectId);
+    // Verify project belongs to caller's organization
+    const projectExists = await Project.findOne({ _id: projectId, organizationId });
+    if (!projectExists) {
+      return res.status(404).json({
+        success: false,
+        error: `Project with ID ${projectId} not found or access denied.`,
+      });
+    }
+
+    const projectAnalysis = await detectProjectRisks(projectId, new Date(), organizationId);
     return res.status(200).json({
       success: true,
       data: projectAnalysis,
@@ -338,13 +358,14 @@ export const handleGetProjectRisk = async (req, res, next) => {
 };
 
 /**
- * @desc   Generate an on-demand AI Project Briefing using real MongoDB data (Task 11)
+ * @desc   Generate an on-demand AI Project Briefing using authorized MongoDB data
  * @route  GET /api/ai/project-briefing/:projectId
- * @access Public
+ * @access Private (JWT protected)
  */
 export const handleGetProjectBriefing = async (req, res, next) => {
   try {
     const { projectId } = req.params;
+    const organizationId = req.user?.organizationId;
 
     if (!projectId) {
       return res.status(400).json({
@@ -353,22 +374,28 @@ export const handleGetProjectBriefing = async (req, res, next) => {
       });
     }
 
-    if (projectId !== 'all' && !mongoose.Types.ObjectId.isValid(projectId)) {
-      return res.status(400).json({
-        success: false,
-        error: `Invalid project ID format: ${projectId}`,
-      });
+    if (projectId !== 'all') {
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid project ID format: ${projectId}`,
+        });
+      }
+
+      const projectExists = await Project.findOne({ _id: projectId, organizationId });
+      if (!projectExists) {
+        return res.status(404).json({
+          success: false,
+          error: `Project with ID ${projectId} not found or access denied.`,
+        });
+      }
     }
 
-    const briefingResult = await generateProjectBriefing(projectId);
+    const briefingResult = await generateProjectBriefing(projectId, organizationId);
     return res.status(200).json({
       success: true,
       data: briefingResult,
-      answer: briefingResult.answer,
-      sources: briefingResult.sources,
-      confidence: briefingResult.confidence,
-      briefingData: briefingResult.briefingData,
-      projectId: briefingResult.projectId,
+      ...briefingResult,
     });
   } catch (error) {
     if (error.statusCode) {
@@ -382,12 +409,13 @@ export const handleGetProjectBriefing = async (req, res, next) => {
 };
 
 /**
- * @desc   Generate an AI-powered construction project report using real MongoDB data (Task 12)
+ * @desc   Generate an AI-powered construction project report using authorized MongoDB data
  * @route  POST /api/ai/generate-report
- * @access Public
+ * @access Private (JWT protected)
  */
 export const handleGenerateReport = async (req, res, next) => {
   try {
+    const organizationId = req.user?.organizationId;
     const { projectId, reportType, conversationId, message } = req.body;
 
     if (!projectId) {
@@ -397,20 +425,29 @@ export const handleGenerateReport = async (req, res, next) => {
       });
     }
 
-    if (projectId !== 'all' && !mongoose.Types.ObjectId.isValid(projectId)) {
-      return res.status(400).json({
-        success: false,
-        error: `Invalid project ID format: ${projectId}`,
-      });
+    if (projectId !== 'all') {
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid project ID format: ${projectId}`,
+        });
+      }
+
+      const projectExists = await Project.findOne({ _id: projectId, organizationId });
+      if (!projectExists) {
+        return res.status(404).json({
+          success: false,
+          error: `Project with ID ${projectId} not found or access denied.`,
+        });
+      }
     }
 
-    const reportResult = await generateProjectReport(projectId, reportType);
+    const reportResult = await generateProjectReport(projectId, reportType, organizationId);
 
-    // If conversationId is provided, persist the exchange to MongoDB conversation history (Task 6)
+    // If conversationId is provided, persist the exchange to MongoDB conversation history
     if (conversationId && mongoose.Types.ObjectId.isValid(conversationId)) {
       try {
-        const Conversation = (await import('../models/Conversation.js')).default;
-        const conv = await Conversation.findById(conversationId);
+        const conv = await Conversation.findOne({ _id: conversationId, organizationId });
         if (conv) {
           const userPrompt = message || `Generate ${reportResult.reportType}`;
           conv.messages.push({

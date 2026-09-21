@@ -2,15 +2,22 @@ import Material, { computeMaterialStatus } from '../models/Material.js';
 
 /**
  * Service to handle business logic and database queries for Material resources
+ * Enforces organization-level data isolation.
  */
 export const materialService = {
   /**
    * Retrieve all materials with optional filtering by projectId, category, status, and search
+   * Scoped to caller's organizationId.
    * @param {Object} query - Query parameters (projectId, category, status, search)
+   * @param {string|ObjectId} [organizationId] - Organization ID
    * @returns {Promise<Array>} List of materials
    */
-  async getAllMaterials(query = {}) {
+  async getAllMaterials(query = {}, organizationId = null) {
     const filter = {};
+
+    if (organizationId) {
+      filter.organizationId = organizationId;
+    }
 
     // Filter by project if provided (GET /api/materials?projectId=...)
     if (query.projectId) {
@@ -40,12 +47,17 @@ export const materialService = {
   },
 
   /**
-   * Find a single material by its MongoDB ObjectId
+   * Find a single material by its MongoDB ObjectId within authorized organization
    * @param {string} id - Material ID
+   * @param {string|ObjectId} [organizationId] - Organization ID
    * @returns {Promise<Object|null>} Found material or null
    */
-  async getMaterialById(id) {
-    return await Material.findById(id).populate('projectId', 'name client location manager status');
+  async getMaterialById(id, organizationId = null) {
+    const query = { _id: id };
+    if (organizationId) {
+      query.organizationId = organizationId;
+    }
+    return await Material.findOne(query).populate('projectId', 'name client location manager status');
   },
 
   /**
@@ -60,19 +72,28 @@ export const materialService = {
   },
 
   /**
-   * Update an existing material record and recalculate status
+   * Update an existing material record and recalculate status within authorized organization
    * @param {string} id - Material ID
    * @param {Object} updateData - Partial or full material updates
+   * @param {string|ObjectId} [organizationId] - Organization ID
    * @returns {Promise<Object|null>} Updated material document
    */
-  async updateMaterial(id, updateData) {
-    const existingMaterial = await Material.findById(id);
+  async updateMaterial(id, updateData, organizationId = null) {
+    const query = { _id: id };
+    if (organizationId) {
+      query.organizationId = organizationId;
+    }
+
+    const existingMaterial = await Material.findOne(query);
     if (!existingMaterial) {
       return null;
     }
 
+    const safeUpdates = { ...updateData };
+    delete safeUpdates.organizationId;
+
     // Merge updates onto document
-    Object.assign(existingMaterial, updateData);
+    Object.assign(existingMaterial, safeUpdates);
 
     // Explicitly recalculate status based on current/updated quantities
     existingMaterial.status = computeMaterialStatus(
@@ -85,11 +106,16 @@ export const materialService = {
   },
 
   /**
-   * Remove a material record by ID
+   * Remove a material record by ID within authorized organization
    * @param {string} id - Material ID
+   * @param {string|ObjectId} [organizationId] - Organization ID
    * @returns {Promise<Object|null>} Deleted material or null
    */
-  async deleteMaterial(id) {
-    return await Material.findByIdAndDelete(id);
+  async deleteMaterial(id, organizationId = null) {
+    const query = { _id: id };
+    if (organizationId) {
+      query.organizationId = organizationId;
+    }
+    return await Material.findOneAndDelete(query);
   },
 };

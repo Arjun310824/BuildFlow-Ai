@@ -4,26 +4,50 @@ import Project from '../models/Project.js';
 
 /**
  * Controller handling HTTP requests for Task endpoints
+ * Enforces organization isolation and IDOR protection.
  */
 export const taskController = {
   /**
    * @route   GET /api/tasks
-   * @desc    Retrieve all tasks (supports ?projectId=... filter)
-   * @access  Public
+   * @desc    Retrieve all tasks for caller's organization (supports ?projectId=... filter)
+   * @access  Private (JWT protected)
    */
   async getTasks(req, res, next) {
     try {
-      const { projectId, status, priority, search } = req.query;
-
-      // Validate projectId format if passed as query parameter
-      if (projectId && !mongoose.Types.ObjectId.isValid(projectId)) {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid projectId query parameter: "${projectId}". Must be a 24-character hexadecimal MongoDB ObjectId.`,
+      const organizationId = req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(200).json({
+          success: true,
+          count: 0,
+          data: [],
         });
       }
 
-      const tasks = await taskService.getAllTasks({ projectId, status, priority, search });
+      const { projectId, status, priority, search } = req.query;
+
+      // Validate projectId format if passed as query parameter
+      if (projectId) {
+        if (!mongoose.Types.ObjectId.isValid(projectId)) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid projectId query parameter: "${projectId}". Must be a 24-character hexadecimal MongoDB ObjectId.`,
+          });
+        }
+
+        // Verify project belongs to caller's organization
+        const projectExists = await Project.findOne({ _id: projectId, organizationId });
+        if (!projectExists) {
+          return res.status(404).json({
+            success: false,
+            message: `Project with ID "${projectId}" not found or access denied.`,
+          });
+        }
+      }
+
+      const tasks = await taskService.getAllTasks(
+        { projectId, status, priority, search },
+        organizationId
+      );
 
       res.status(200).json({
         success: true,
@@ -37,13 +61,15 @@ export const taskController = {
 
   /**
    * @route   GET /api/tasks/:id
-   * @desc    Retrieve a single task by its ID
-   * @access  Public
+   * @desc    Retrieve a single task by its ID within authorized organization
+   * @access  Private (JWT protected)
    */
   async getTaskById(req, res, next) {
     try {
       const { id } = req.params;
-      const task = await taskService.getTaskById(id);
+      const organizationId = req.user?.organizationId;
+
+      const task = await taskService.getTaskById(id, organizationId);
 
       if (!task) {
         return res.status(404).json({
@@ -63,19 +89,27 @@ export const taskController = {
 
   /**
    * @route   POST /api/tasks
-   * @desc    Create a new construction task
-   * @access  Public
+   * @desc    Create a new construction task scoped to caller's organization & project
+   * @access  Private (JWT protected)
    */
   async createTask(req, res, next) {
     try {
+      const organizationId = req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Organization membership required.',
+        });
+      }
+
       const { projectId, title, description, assignedTo, startDate, dueDate, status, progress, priority } = req.body;
 
-      // Requirement 5: Verify that the projectId exists in the Project collection
-      const projectExists = await Project.findById(projectId);
+      // Verify that the projectId exists in the caller's organization
+      const projectExists = await Project.findOne({ _id: projectId, organizationId });
       if (!projectExists) {
         return res.status(404).json({
           success: false,
-          message: `Project with ID "${projectId}" not found`,
+          message: `Project with ID "${projectId}" not found or access denied`,
         });
       }
 
@@ -93,6 +127,7 @@ export const taskController = {
 
       const taskData = {
         projectId,
+        organizationId,
         title: title.trim(),
         description: description ? description.trim() : '',
         assignedTo: assignedTo ? assignedTo.trim() : '',
@@ -117,21 +152,25 @@ export const taskController = {
 
   /**
    * @route   PUT /api/tasks/:id
-   * @desc    Update an existing task
-   * @access  Public
+   * @desc    Update an existing task within authorized organization
+   * @access  Private (JWT protected)
    */
   async updateTask(req, res, next) {
     try {
       const { id } = req.params;
+      const organizationId = req.user?.organizationId;
       const updatePayload = { ...req.body };
 
-      // If projectId is being changed, verify new project exists
+      // If projectId is being changed, verify new project belongs to caller's organization
       if (updatePayload.projectId) {
-        const projectExists = await Project.findById(updatePayload.projectId);
+        const projectExists = await Project.findOne({
+          _id: updatePayload.projectId,
+          organizationId,
+        });
         if (!projectExists) {
           return res.status(404).json({
             success: false,
-            message: `Project with ID "${updatePayload.projectId}" not found`,
+            message: `Project with ID "${updatePayload.projectId}" not found or access denied`,
           });
         }
       }
@@ -155,7 +194,7 @@ export const taskController = {
         updatePayload.progress = Number(updatePayload.progress);
       }
 
-      const updatedTask = await taskService.updateTask(id, updatePayload);
+      const updatedTask = await taskService.updateTask(id, updatePayload, organizationId);
 
       if (!updatedTask) {
         return res.status(404).json({
@@ -176,13 +215,15 @@ export const taskController = {
 
   /**
    * @route   DELETE /api/tasks/:id
-   * @desc    Delete a task by ID
-   * @access  Public
+   * @desc    Delete a task by ID within authorized organization
+   * @access  Private (JWT protected)
    */
   async deleteTask(req, res, next) {
     try {
       const { id } = req.params;
-      const deletedTask = await taskService.deleteTask(id);
+      const organizationId = req.user?.organizationId;
+
+      const deletedTask = await taskService.deleteTask(id, organizationId);
 
       if (!deletedTask) {
         return res.status(404).json({

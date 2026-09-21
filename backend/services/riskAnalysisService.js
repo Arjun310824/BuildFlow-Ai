@@ -314,22 +314,34 @@ export const calculateProjectRisksFromData = (
  * @param {Date} [referenceDate=new Date()]
  * @returns {Promise<Object>}
  */
-export const detectProjectRisks = async (projectId, referenceDate = new Date()) => {
+export const detectProjectRisks = async (projectId, referenceDate = new Date(), organizationId = null) => {
   if (!projectId || !isValidObjectId(projectId)) {
     const error = new Error(`Invalid project ID provided: ${projectId}`);
     error.statusCode = 400;
     throw error;
   }
 
+  const projectQuery = { _id: projectId };
+  if (organizationId) {
+    projectQuery.organizationId = organizationId;
+  }
+
+  const taskQuery = { projectId };
+  const matQuery = { projectId };
+  if (organizationId) {
+    taskQuery.organizationId = organizationId;
+    matQuery.organizationId = organizationId;
+  }
+
   // Parallel fetch from MongoDB
   const [project, tasks, materials] = await Promise.all([
-    Project.findById(projectId).lean(),
-    Task.find({ projectId }).sort({ dueDate: 1 }).lean(),
-    Material.find({ projectId }).sort({ name: 1 }).lean(),
+    Project.findOne(projectQuery).lean(),
+    Task.find(taskQuery).sort({ dueDate: 1 }).lean(),
+    Material.find(matQuery).sort({ name: 1 }).lean(),
   ]);
 
   if (!project) {
-    const error = new Error(`Project with ID ${projectId} not found in database.`);
+    const error = new Error(`Project with ID ${projectId} not found in database or access denied.`);
     error.statusCode = 404;
     throw error;
   }
@@ -338,17 +350,22 @@ export const detectProjectRisks = async (projectId, referenceDate = new Date()) 
 };
 
 /**
- * Analyzes all projects across the portfolio and deterministically flags project-level risks
- * Executes 3 batched queries across the entire database to avoid N+1 queries.
+ * Analyzes all projects across the portfolio for authorized organization and deterministically flags project-level risks
+ * Executes 3 batched queries strictly scoped to caller's organization.
  *
  * @param {Date} [referenceDate=new Date()]
+ * @param {string|ObjectId} [organizationId=null]
  * @returns {Promise<Object>}
  */
-export const detectPortfolioRisks = async (referenceDate = new Date()) => {
+export const detectPortfolioRisks = async (referenceDate = new Date(), organizationId = null) => {
+  const projectFilter = organizationId ? { organizationId } : {};
+  const taskFilter = organizationId ? { organizationId } : {};
+  const matFilter = organizationId ? { organizationId } : {};
+
   const [allProjects, allTasks, allMaterials] = await Promise.all([
-    Project.find({}).sort({ name: 1 }).lean(),
-    Task.find({}).lean(),
-    Material.find({}).lean(),
+    Project.find(projectFilter).sort({ name: 1 }).lean(),
+    Task.find(taskFilter).lean(),
+    Material.find(matFilter).lean(),
   ]);
 
   // Group tasks and materials by projectId for O(N) lookup

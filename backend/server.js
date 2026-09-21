@@ -20,6 +20,8 @@ import organizationRoutes from './routes/organizationRoutes.js';
 import businessConnectionRoutes from './routes/businessConnectionRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import businessTransactionRoutes from './routes/businessTransactionRoutes.js';
+import siteUpdateRoutes from './routes/siteUpdateRoutes.js';
+import documentRoutes from './routes/documentRoutes.js';
 import { protect } from './middleware/auth.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
 
@@ -47,6 +49,8 @@ app.use('/api/organizations', protect, organizationRoutes);
 app.use('/api/business-connections', protect, businessConnectionRoutes);
 app.use('/api/notifications', protect, notificationRoutes);
 app.use('/api/business-transactions', protect, businessTransactionRoutes);
+app.use('/api/site-updates', protect, siteUpdateRoutes);
+app.use('/api/documents', protect, documentRoutes);
 
 // Fallback for undefined routes (404)
 app.use(notFound);

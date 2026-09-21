@@ -80,10 +80,16 @@ export const Dashboard = ({
 
   // Update if props change
   useEffect(() => {
-    if (initialProjects.length > 0 && projectsList.length === 0) setProjectsList(initialProjects);
-    if (initialTasks.length > 0 && tasksList.length === 0) setTasksList(initialTasks);
-    if (initialMaterials.length > 0 && materialsList.length === 0) setMaterialsList(initialMaterials);
-  }, [initialProjects, initialTasks, initialMaterials]);
+    setProjectsList(initialProjects);
+  }, [initialProjects]);
+
+  useEffect(() => {
+    setTasksList(initialTasks);
+  }, [initialTasks]);
+
+  useEffect(() => {
+    setMaterialsList(initialMaterials);
+  }, [initialMaterials]);
 
   // Derived Project Analytics strictly computed from real records
   const totalProjects = projectsList.length;

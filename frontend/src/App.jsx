@@ -14,6 +14,12 @@ import {
   createMaterialApi,
   updateMaterialApi,
   deleteMaterialApi,
+  getSiteUpdatesApi,
+  createSiteUpdateApi,
+  deleteSiteUpdateApi,
+  getDocumentsApi,
+  createDocumentApi,
+  deleteDocumentApi,
 } from './services/api';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
@@ -127,9 +133,9 @@ function AppContent() {
   const [tasks, setTasks] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [suppliers, setSuppliers] = useState(initialSuppliers);
-  const [siteUpdates, setSiteUpdates] = useState(initialSiteUpdates);
-  const [documents, setDocuments] = useState(initialDocuments);
-  const [alerts, setAlerts] = useState(initialAlerts);
+  const [siteUpdates, setSiteUpdates] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [alerts, setAlerts] = useState([]);
 
   // Toast Helper
   const addToast = useCallback((message, type = 'info') => {
@@ -205,39 +211,71 @@ function AppContent() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [isAuthenticated, isLoading]);
 
-  // Initial data fetch from MongoDB (Projects, Tasks, Materials) — only runs when authenticated
+  // Initial data fetch from MongoDB — only runs when authenticated
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      setProjects([]);
+      setTasks([]);
+      setMaterials([]);
+      setSiteUpdates([]);
+      setDocuments([]);
+      setAlerts([]);
+      setSelectedProjectId(null);
+      return;
+    }
 
     const loadInitialData = async () => {
       try {
-        const [projRes, taskRes, matRes] = await Promise.allSettled([
+        const [projRes, taskRes, matRes, siteRes, docRes] = await Promise.allSettled([
           getProjectsApi(),
           getTasksApi(),
           getMaterialsApi(),
+          getSiteUpdatesApi(),
+          getDocumentsApi(),
         ]);
 
-        if (projRes.status === 'fulfilled' && projRes.value?.success && Array.isArray(projRes.value.data) && projRes.value.data.length > 0) {
+        if (projRes.status === 'fulfilled' && projRes.value?.success && Array.isArray(projRes.value.data)) {
           setProjects(projRes.value.data);
-          const firstId = projRes.value.data[0]._id || projRes.value.data[0].id;
+          const firstId = projRes.value.data[0]?._id || projRes.value.data[0]?.id;
           if (firstId) {
             setSelectedProjectId((prev) => (prev && /^[0-9a-fA-F]{24}$/.test(prev) ? prev : firstId));
+          } else {
+            setSelectedProjectId(null);
           }
+        } else {
+          setProjects([]);
+          setSelectedProjectId(null);
         }
 
-        if (taskRes.status === 'fulfilled' && taskRes.value?.success && Array.isArray(taskRes.value.data) && taskRes.value.data.length > 0) {
+        if (taskRes.status === 'fulfilled' && taskRes.value?.success && Array.isArray(taskRes.value.data)) {
           setTasks(taskRes.value.data);
+        } else {
+          setTasks([]);
         }
 
-        if (matRes.status === 'fulfilled' && matRes.value?.success && Array.isArray(matRes.value.data) && matRes.value.data.length > 0) {
+        if (matRes.status === 'fulfilled' && matRes.value?.success && Array.isArray(matRes.value.data)) {
           setMaterials(matRes.value.data);
+        } else {
+          setMaterials([]);
+        }
+
+        if (siteRes.status === 'fulfilled' && siteRes.value?.success && Array.isArray(siteRes.value.data)) {
+          setSiteUpdates(siteRes.value.data);
+        } else {
+          setSiteUpdates([]);
+        }
+
+        if (docRes.status === 'fulfilled' && docRes.value?.success && Array.isArray(docRes.value.data)) {
+          setDocuments(docRes.value.data);
+        } else {
+          setDocuments([]);
         }
       } catch (err) {
         console.warn('Initial MongoDB data fetch encountered error:', err);
       }
     };
     loadInitialData();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?._id, user?.id, user?.organizationId]);
 
   // Central Navigation Handler with Protected Route Checks
   const handleNavigate = (targetTab) => {
@@ -290,6 +328,13 @@ function AppContent() {
 
   const handleSignOut = () => {
     logout();
+    setProjects([]);
+    setTasks([]);
+    setMaterials([]);
+    setSiteUpdates([]);
+    setDocuments([]);
+    setAlerts([]);
+    setSelectedProjectId(null);
     sessionStorage.removeItem('buildops_redirect_path');
     window.history.replaceState(null, '', '/login');
     setActiveTab('login');
@@ -457,19 +502,102 @@ function AppContent() {
     addToast(`Supplier "${newSup.name}" registered.`, 'success');
   };
 
-  const handleAddSiteUpdate = (newUpdate) => {
-    setSiteUpdates((prev) => [newUpdate, ...prev]);
-    addToast(`Daily log for ${newUpdate.project} saved.`, 'success');
+  const handleAddSiteUpdate = async (newUpdate) => {
+    try {
+      let targetProjectId = newUpdate.projectId;
+      if (!targetProjectId || !/^[0-9a-fA-F]{24}$/.test(targetProjectId)) {
+        const matched = projects.find(
+          (p) => (p.name === newUpdate.project) || (p._id && p._id.toString() === targetProjectId)
+        ) || projects[0];
+        targetProjectId = matched?._id || matched?.id;
+      }
+
+      if (!targetProjectId || !/^[0-9a-fA-F]{24}$/.test(targetProjectId)) {
+        addToast('Cannot save site update: valid project is required.', 'error');
+        return;
+      }
+
+      const projName = newUpdate.project || projects.find(p => (p._id || p.id) === targetProjectId)?.name || 'Project';
+
+      const payload = {
+        projectId: targetProjectId,
+        project: projName,
+        supervisor: newUpdate.supervisor || user?.name || 'Site Supervisor',
+        workCompleted: newUpdate.workCompleted || newUpdate.workSummary || 'Field progress update',
+        progress: Number(newUpdate.progress) || 0,
+        workers: Number(newUpdate.workers) || 0,
+        issues: newUpdate.issues || 'None reported',
+        weather: newUpdate.weather || 'Clear',
+        tags: Array.isArray(newUpdate.tags) ? newUpdate.tags : ['Field Telemetry'],
+        image: newUpdate.image || '',
+        date: newUpdate.date ? new Date(newUpdate.date) : new Date(),
+      };
+
+      const res = await createSiteUpdateApi(payload);
+      if (res && res.success && res.data) {
+        setSiteUpdates((prev) => [res.data, ...prev]);
+        addToast(`Daily log for ${projName} saved.`, 'success');
+      } else {
+        addToast(res?.message || 'Failed to save site update.', 'error');
+      }
+    } catch (err) {
+      console.error('Error saving site update:', err);
+      addToast(err.message || 'Failed to save site update.', 'error');
+    }
   };
 
-  const handleUploadDocument = (newDoc) => {
-    setDocuments((prev) => [newDoc, ...prev]);
-    addToast(`Document "${newDoc.name}" uploaded to repository.`, 'success');
+  const handleUploadDocument = async (newDoc) => {
+    try {
+      let targetProjectId = newDoc.projectId;
+      if (!targetProjectId || !/^[0-9a-fA-F]{24}$/.test(targetProjectId)) {
+        const matched = projects.find(
+          (p) => (p.name === newDoc.project) || (p._id && p._id.toString() === targetProjectId)
+        ) || projects[0];
+        targetProjectId = matched?._id || matched?.id;
+      }
+
+      if (!targetProjectId || !/^[0-9a-fA-F]{24}$/.test(targetProjectId)) {
+        addToast('Cannot upload document: valid project is required.', 'error');
+        return;
+      }
+
+      const projName = newDoc.project || projects.find(p => (p._id || p.id) === targetProjectId)?.name || 'Project';
+
+      const payload = {
+        projectId: targetProjectId,
+        project: projName,
+        name: newDoc.name,
+        type: newDoc.type || 'Contract',
+        size: newDoc.size || '2.5 MB',
+        uploadedBy: newDoc.uploadedBy || user?.name || 'Project Manager',
+        status: newDoc.status || 'Approved',
+        date: newDoc.date ? new Date(newDoc.date) : new Date(),
+      };
+
+      const res = await createDocumentApi(payload);
+      if (res && res.success && res.data) {
+        setDocuments((prev) => [res.data, ...prev]);
+        addToast(`Document "${res.data.name}" uploaded to repository.`, 'success');
+      } else {
+        addToast(res?.message || 'Failed to save document.', 'error');
+      }
+    } catch (err) {
+      console.error('Error saving document:', err);
+      addToast(err.message || 'Failed to save document.', 'error');
+    }
   };
 
-  const handleDeleteDocument = (docId) => {
-    setDocuments((prev) => prev.filter((d) => d.id !== docId));
-    addToast('Document deleted from archive.', 'warning');
+  const handleDeleteDocument = async (docId) => {
+    try {
+      if (docId && /^[0-9a-fA-F]{24}$/.test(docId)) {
+        await deleteDocumentApi(docId);
+      }
+      setDocuments((prev) => prev.filter((d) => (d._id || d.id) !== docId));
+      addToast('Document deleted from archive.', 'warning');
+    } catch (err) {
+      console.error('Error deleting document:', err);
+      addToast(err.message || 'Failed to delete document.', 'error');
+    }
   };
 
   const handleExportReport = (format) => {

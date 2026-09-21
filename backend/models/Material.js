@@ -29,6 +29,12 @@ const materialSchema = new mongoose.Schema(
       ref: 'Project',
       required: [true, 'Project ID is required'],
     },
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: [true, 'Organization ID is required'],
+      index: true,
+    },
     name: {
       type: String,
       required: [true, 'Material name is required'],

@@ -716,5 +716,84 @@ export const cancelBusinessTransactionApi = async (id, reason = '') => {
   });
 };
 
+// ==========================================
+// Site Updates CRUD Endpoints
+// ==========================================
 
+/**
+ * Retrieve all site updates for current organization with optional projectId filter
+ * @param {Object} [params] - Query parameters ({ projectId })
+ * @returns {Promise<{ success: boolean, count: number, data: Array }>}
+ */
+export const getSiteUpdatesApi = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.projectId && params.projectId !== 'All') {
+    queryParams.append('projectId', params.projectId);
+  }
+  const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+  return await apiClient(`/site-updates${queryString}`);
+};
 
+/**
+ * Create a new site update log
+ * @param {Object} data - Update data ({ projectId, supervisor, workCompleted/workSummary, progress, workers, issues, etc. })
+ * @returns {Promise<{ success: boolean, data: Object }>}
+ */
+export const createSiteUpdateApi = async (data) => {
+  return await apiClient('/site-updates', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+/**
+ * Delete a site update log
+ * @param {string} id - Site update ID
+ * @returns {Promise<{ success: boolean, message: string }>}
+ */
+export const deleteSiteUpdateApi = async (id) => {
+  return await apiClient(`/site-updates/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+// ==========================================
+// Documents CRUD Endpoints
+// ==========================================
+
+/**
+ * Retrieve all documents for current organization with optional projectId filter
+ * @param {Object} [params] - Query parameters ({ projectId })
+ * @returns {Promise<{ success: boolean, count: number, data: Array }>}
+ */
+export const getDocumentsApi = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.projectId && params.projectId !== 'All') {
+    queryParams.append('projectId', params.projectId);
+  }
+  const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+  return await apiClient(`/documents${queryString}`);
+};
+
+/**
+ * Upload / register a new document
+ * @param {Object} data - Document data ({ projectId, name, type, size, status, uploadedBy })
+ * @returns {Promise<{ success: boolean, data: Object }>}
+ */
+export const createDocumentApi = async (data) => {
+  return await apiClient('/documents', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+/**
+ * Delete a document
+ * @param {string} id - Document ID
+ * @returns {Promise<{ success: boolean, message: string }>}
+ */
+export const deleteDocumentApi = async (id) => {
+  return await apiClient(`/documents/${id}`, {
+    method: 'DELETE',
+  });
+};

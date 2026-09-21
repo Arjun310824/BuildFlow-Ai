@@ -43,11 +43,12 @@ export const normalizeReportType = (reportType) => {
  * Compiles strictly deterministic report metrics for a single project or portfolio
  * @param {string} projectId - Project ObjectId or 'all'
  * @param {string} [reportType='Project Status Report']
+ * @param {string|ObjectId} [organizationId=null] - Caller's organization ID
  * @returns {Promise<Object>} Structured report data
  */
-export const buildDeterministicReportData = async (projectId, reportType = 'Project Status Report') => {
+export const buildDeterministicReportData = async (projectId, reportType = 'Project Status Report', organizationId = null) => {
   const normType = normalizeReportType(reportType);
-  const context = await getChatContext(projectId);
+  const context = await getChatContext(projectId, organizationId);
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10);
 
@@ -444,7 +445,7 @@ export const formatDeterministicReportFallback = (data) => {
  * @param {string} [reportType='Project Status Report'] - Report type
  * @returns {Promise<{ answer: string, sources: Array<{ type: string, label: string }>, confidence: string, reportData: Object, reportType: string, projectId: string }>}
  */
-export const generateProjectReport = async (projectId, reportType = 'Project Status Report') => {
+export const generateProjectReport = async (projectId, reportType = 'Project Status Report', organizationId = null) => {
   // 1. Validate projectId
   if (projectId && projectId !== 'all' && !isValidObjectId(projectId)) {
     const error = new Error(`Invalid project ID format: ${projectId}`);
@@ -454,8 +455,8 @@ export const generateProjectReport = async (projectId, reportType = 'Project Sta
 
   const normType = normalizeReportType(reportType);
 
-  // 2. Fetch deterministic facts from MongoDB
-  const reportData = await buildDeterministicReportData(projectId, normType);
+  // 2. Fetch deterministic facts from MongoDB scoped to organization
+  const reportData = await buildDeterministicReportData(projectId, normType, organizationId);
 
   // 3. Prepare Sources list based on real collections accessed
   const sources = [{ type: 'project', label: 'Project Data' }];

@@ -156,7 +156,7 @@ export const SiteUpdates = ({
     onAddUpdate({
       id: `UPD-${Date.now().toString().slice(-4)}`,
       ...newUpdate,
-      projectId: prj ? prj.id : 'PRJ-101',
+      projectId: prj ? (prj._id || prj.id) : (projects[0]?._id || projects[0]?.id),
       workers: Number(newUpdate.workers) || 20,
       progress: Number(newUpdate.progress) || 50,
       tags: ['Daily Log', 'Field Inspection'],
@@ -717,7 +717,7 @@ export const SiteUpdates = ({
                   onChange={(e) => setNewUpdate({ ...newUpdate, project: e.target.value })}
                 >
                   {projects.map((p) => (
-                    <option key={p.id} value={p.name}>
+                    <option key={p._id || p.id} value={p.name}>
                       {p.name}
                     </option>
                   ))}

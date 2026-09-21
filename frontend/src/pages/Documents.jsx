@@ -55,14 +55,17 @@ export const Documents = ({
     e.preventDefault();
     if (!newDoc.name.trim()) return;
 
+    const prj = projects.find((p) => p.name === newDoc.project) || projects[0];
+    const targetProjectId = prj ? (prj._id || prj.id) : null;
+
     onUploadDocument({
       id: `DOC-${Date.now().toString().slice(-4)}`,
       name: newDoc.name.endsWith('.pdf') || newDoc.name.endsWith('.dwg') ? newDoc.name : `${newDoc.name}.pdf`,
       type: newDoc.type,
-      project: newDoc.project,
-      projectId: newDoc.projectId,
-      uploadedBy: 'Alex Morgan',
-      date: '2026-09-20',
+      project: prj ? prj.name : (newDoc.project || 'Project Document'),
+      projectId: targetProjectId,
+      uploadedBy: 'Project Manager',
+      date: new Date().toISOString().slice(0, 10),
       size: newDoc.size || '3.5 MB',
       status: 'Approved',
     });
@@ -71,8 +74,8 @@ export const Documents = ({
     setNewDoc({
       name: '',
       type: 'Contract',
-      project: projects[0]?.name || 'Residential Tower A',
-      projectId: projects[0]?.id || 'PRJ-101',
+      project: projects[0]?.name || '',
+      projectId: projects[0]?._id || projects[0]?.id || '',
       size: '2.4 MB',
     });
   };
@@ -268,7 +271,7 @@ export const Documents = ({
                     onChange={(e) => setNewDoc({ ...newDoc, project: e.target.value })}
                   >
                     {projects.map((p) => (
-                      <option key={p.id} value={p.name}>
+                      <option key={p._id || p.id} value={p.name}>
                         {p.name}
                       </option>
                     ))}
