@@ -10,11 +10,17 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 import express from 'express';
 import cors from 'cors';
 import { connectDB } from './config/db.js';
+import authRoutes from './routes/authRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import materialRoutes from './routes/materialRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import organizationRoutes from './routes/organizationRoutes.js';
+import businessConnectionRoutes from './routes/businessConnectionRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import businessTransactionRoutes from './routes/businessTransactionRoutes.js';
+import { protect } from './middleware/auth.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -25,15 +31,22 @@ connectDB();
 
 // Core Middleware
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '35mb' }));
+app.use(express.urlencoded({ extended: true, limit: '35mb' }));
 
-// Base API Routes
+// Public Authentication & Monitoring Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/health', healthRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/materials', materialRoutes);
-app.use('/api/ai', aiRoutes);
+
+// Protected Core Application Routes
+app.use('/api/projects', protect, projectRoutes);
+app.use('/api/tasks', protect, taskRoutes);
+app.use('/api/materials', protect, materialRoutes);
+app.use('/api/ai', protect, aiRoutes);
+app.use('/api/organizations', protect, organizationRoutes);
+app.use('/api/business-connections', protect, businessConnectionRoutes);
+app.use('/api/notifications', protect, notificationRoutes);
+app.use('/api/business-transactions', protect, businessTransactionRoutes);
 
 // Fallback for undefined routes (404)
 app.use(notFound);

@@ -79,6 +79,18 @@ export const taskController = {
         });
       }
 
+      if (startDate && dueDate) {
+        const start = new Date(startDate);
+        const due = new Date(dueDate);
+        if (due < start) {
+          return res.status(400).json({
+            success: false,
+            message: 'Due date cannot be earlier than start date',
+            errors: ['Due date cannot be earlier than start date'],
+          });
+        }
+      }
+
       const taskData = {
         projectId,
         title: title.trim(),
@@ -120,6 +132,18 @@ export const taskController = {
           return res.status(404).json({
             success: false,
             message: `Project with ID "${updatePayload.projectId}" not found`,
+          });
+        }
+      }
+
+      if (updatePayload.startDate && updatePayload.dueDate) {
+        const start = new Date(updatePayload.startDate);
+        const due = new Date(updatePayload.dueDate);
+        if (due < start) {
+          return res.status(400).json({
+            success: false,
+            message: 'Due date cannot be earlier than start date',
+            errors: ['Due date cannot be earlier than start date'],
           });
         }
       }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TypeBadge, StatusBadge } from '../components/common/Badge';
+import { downloadVaultDocument } from '../utils/fileDownloader';
 import {
   IconSearch,
   IconPlus,
@@ -42,6 +43,13 @@ export const Documents = ({
 
     return matchesSearch && matchesType && matchesProject;
   });
+
+  const handleDownload = (doc) => {
+    downloadVaultDocument(doc);
+    if (onDownloadFeedback) {
+      onDownloadFeedback(doc);
+    }
+  };
 
   const handleUpload = (e) => {
     e.preventDefault();
@@ -183,7 +191,7 @@ export const Documents = ({
                       </button>
                       <button
                         className="btn btn-secondary btn-sm"
-                        onClick={() => onDownloadFeedback && onDownloadFeedback(doc.name)}
+                        onClick={() => handleDownload(doc)}
                         title={t('common.download')}
                       >
                         <IconDownload size={14} />
@@ -320,7 +328,7 @@ export const Documents = ({
               <button
                 className="btn btn-primary"
                 onClick={() => {
-                  onDownloadFeedback && onDownloadFeedback(previewDoc.name);
+                  handleDownload(previewDoc);
                   setPreviewDoc(null);
                 }}
               >

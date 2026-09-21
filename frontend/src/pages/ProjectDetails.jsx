@@ -29,24 +29,30 @@ export const ProjectDetails = ({
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Fallback to first available project if none specified
+  // Date formatting helper
+  const formatDate = (dateVal) => {
+    if (!dateVal) return '—';
+    if (typeof dateVal === 'string' && dateVal.includes('T')) {
+      return dateVal.slice(0, 10);
+    }
+    return String(dateVal);
+  };
+
+  // Resolve current project safely from props
   const currentProject =
     project ||
-    allProjects[0] || {
-      id: 'PRJ-101',
-      name: 'Residential Tower A',
-      code: 'RTA-01',
-      location: 'Downtown Metro, Sector 4',
-      manager: 'Alex Morgan',
-      startDate: '2026-01-15',
-      expectedCompletion: '2026-11-30',
-      budget: '$18,400,000',
-      spent: '$12,500,000',
-      progress: 68,
-      status: 'At Risk',
-      healthScore: 68,
-      description: '42-story luxury residential high-rise with 3-tier underground parking.',
-    };
+    allProjects.find((p) => (p._id || p.id) === (project?._id || project?.id)) ||
+    allProjects[0] ||
+    null;
+
+  if (!currentProject) {
+    return (
+      <div className="page-container" style={{ padding: '60px 20px', textAlign: 'center' }}>
+        <div style={{ fontSize: '1.6rem', marginBottom: '12px' }}>⏳</div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Loading project details from database...</p>
+      </div>
+    );
+  }
 
   const currentProjectId = (currentProject._id || currentProject.id || '').toString();
   const currentProjectName = currentProject.name || '';
@@ -88,9 +94,9 @@ export const ProjectDetails = ({
     );
   });
 
-  // Health Score styling
-  const healthScore = currentProject.healthScore || 68;
-  const isHealthRisk = healthScore < 75;
+  // Deterministic health score derived from project risk and delayed tasks
+  const isHealthRisk = currentProject.risk === 'High' || currentProject.status === 'On Hold';
+  const healthScore = currentProject.risk === 'Low' ? 95 : currentProject.risk === 'Medium' ? 75 : 45;
 
   const tabs = [
     { id: 'overview', label: 'Overview & Digital Twin' },
@@ -110,12 +116,12 @@ export const ProjectDetails = ({
           <span style={{ color: 'var(--text-muted)' }}>{t('navigation.projects')}:</span>
           <select
             className="filter-select"
-            value={currentProject.id}
+            value={currentProjectId}
             onChange={(e) => onSelectProject && onSelectProject(e.target.value)}
           >
             {allProjects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.code})
+              <option key={p._id || p.id} value={p._id || p.id}>
+                {p.name}
               </option>
             ))}
           </select>
@@ -141,7 +147,7 @@ export const ProjectDetails = ({
               <RiskBadge riskLevel={currentProject.risk || 'Low'} />
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-              {currentProject.description}
+              {currentProject.description || `Active operational project managed by ${currentProject.manager || 'Alex Morgan'}.`}
             </p>
           </div>
 
@@ -209,6 +215,12 @@ export const ProjectDetails = ({
             </span>
           </div>
           <div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Client</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.88rem' }}>
+              {currentProject.client || 'Strategic Partner'}
+            </span>
+          </div>
+          <div>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('projects.projectManager')}</span>
             <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.88rem' }}>
               {currentProject.manager}
@@ -217,19 +229,13 @@ export const ProjectDetails = ({
           <div>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('common.timeline')}</span>
             <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.88rem' }}>
-              {currentProject.startDate} → {currentProject.expectedCompletion}
-            </span>
-          </div>
-          <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('projects.budget')}</span>
-            <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.88rem' }}>
-              {currentProject.budget}
+              {formatDate(currentProject.startDate)} → {formatDate(currentProject.endDate || currentProject.expectedCompletion)}
             </span>
           </div>
           <div>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('common.progress')}</span>
             <div style={{ marginTop: '2px' }}>
-              <ProgressBar progress={currentProject.progress} height={6} />
+              <ProgressBar progress={currentProject.progress || 0} height={6} />
             </div>
           </div>
         </div>
@@ -266,18 +272,18 @@ export const ProjectDetails = ({
             {/* Project Progress */}
             <div className="card">
               <div className="stat-label">{t('dashboard.projectProgress')}</div>
-              <div className="stat-value">{currentProject.progress}%</div>
+              <div className="stat-value">{currentProject.progress || 0}%</div>
               <div style={{ marginTop: '10px' }}>
-                <ProgressBar progress={currentProject.progress} showLabel={false} height={6} />
+                <ProgressBar progress={currentProject.progress || 0} showLabel={false} height={6} />
               </div>
-              <div className="stat-subtext">{currentProject.category || 'Superstructure'}</div>
+              <div className="stat-subtext">{currentProject.status || 'Active'} Phase</div>
             </div>
 
             {/* Task Completion */}
             <div className="card">
               <div className="stat-label">{t('tasks.title')}</div>
               <div className="stat-value">
-                {projectTasks.filter((t) => t.status === 'Completed').length} / {projectTasks.length || 4}
+                {projectTasks.filter((t) => t.status === 'Completed').length} / {projectTasks.length}
               </div>
               <div style={{ marginTop: '10px' }}>
                 <ProgressBar
@@ -286,7 +292,7 @@ export const ProjectDetails = ({
                       ? Math.round(
                           (projectTasks.filter((t) => t.status === 'Completed').length / projectTasks.length) * 100
                         )
-                      : 40
+                      : 0
                   }
                   showLabel={false}
                   height={6}
@@ -301,22 +307,31 @@ export const ProjectDetails = ({
             <div className="card">
               <div className="stat-label">{t('materials.title')}</div>
               <div className="stat-value">
-                {projectMaterials.filter((m) => m.status === 'In Stock').length} / {projectMaterials.length || 3}
+                {projectMaterials.filter((m) => m.status === 'Available' || m.status === 'In Stock').length} / {projectMaterials.length}
               </div>
               <div style={{ marginTop: '10px' }}>
-                <span className="badge badge-delayed">{t('status.lowStock')}</span>
+                <span className={`badge ${projectMaterials.some((m) => m.status === 'Low Stock' || m.status === 'Out of Stock') ? 'badge-delayed' : 'badge-on-track'}`}>
+                  {projectMaterials.some((m) => m.status === 'Out of Stock') ? 'Out of Stock' : projectMaterials.some((m) => m.status === 'Low Stock') ? 'Low Stock' : 'Stock Optimal'}
+                </span>
               </div>
-              <div className="stat-subtext">80 / 500 units</div>
+              <div className="stat-subtext">
+                {projectMaterials.filter((m) => m.status === 'Low Stock' || m.status === 'Out of Stock').length} inventory alerts
+              </div>
             </div>
 
-            {/* Budget Status */}
+            {/* Operational Risk & Governance */}
             <div className="card">
-              <div className="stat-label">{t('projects.budget')}</div>
-              <div className="stat-value">{currentProject.spent || '$12.5M'}</div>
-              <div style={{ marginTop: '10px' }}>
-                <ProgressBar progress={68} showLabel={false} height={6} />
+              <div className="stat-label">Operational Risk</div>
+              <div className="stat-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <RiskBadge riskLevel={currentProject.risk || 'Low'} />
               </div>
-              <div className="stat-subtext">68% of {currentProject.budget}</div>
+              <div style={{ marginTop: '10px' }}>
+                <span style={{ fontSize: '0.80rem', color: 'var(--text-muted)' }}>Status: </span>
+                <StatusBadge status={currentProject.status || 'Planning'} />
+              </div>
+              <div className="stat-subtext">
+                Supervised by {currentProject.manager || 'Alex Morgan'}
+              </div>
             </div>
           </div>
 

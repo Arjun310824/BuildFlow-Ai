@@ -1,101 +1,222 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { loginApi, registerApi, getMeApi } from '../services/api';
 
-const STORAGE_KEY = 'buildflow_auth_user';
+const TOKEN_KEY = 'buildops_token';
+const USER_KEY = 'buildflow_auth_user';
 
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  // Read initial user state safely from localStorage
-  const [user, setUser] = useState(() => {
+  const [token, setToken] = useState(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) return null;
-      const parsed = JSON.parse(stored);
-      if (parsed && typeof parsed === 'object' && parsed.email) {
-        return parsed;
-      }
-      // If corrupted or invalid, clear it
-      localStorage.removeItem(STORAGE_KEY);
-      return null;
-    } catch (err) {
-      console.warn('Failed to parse auth user from localStorage:', err);
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-      } catch (e) {}
+      return localStorage.getItem(TOKEN_KEY) || null;
+    } catch (e) {
       return null;
     }
   });
 
-  const isAuthenticated = Boolean(user);
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem(USER_KEY);
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      return parsed && typeof parsed === 'object' && parsed.email ? parsed : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  // Loading state while verifying token on startup
+  const [isLoading, setIsLoading] = useState(true);
+
+  const isAuthenticated = Boolean(user && token);
 
   /**
-   * Log in user with credentials or default demo profile
-   * @param {Object} credentials - { email, password, name, role }
+   * Safe helper to compute avatar initials
+   */
+  const getAvatarInitials = (name) => {
+    if (!name) return 'BO';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  /**
+   * Log out user, purge storage, and reset state
+   */
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem('buildflow_token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth');
+      sessionStorage.clear();
+    } catch (err) {
+      console.warn('[AuthContext] Failed to clear storage on logout:', err);
+    }
+  }, []);
+
+  /**
+   * Verify token on startup using GET /api/auth/me
+   */
+  useEffect(() => {
+    let isMounted = true;
+
+    const verifyExistingAuth = async () => {
+      const storedToken = localStorage.getItem(TOKEN_KEY);
+
+      if (!storedToken) {
+        if (isMounted) {
+          setUser(null);
+          setToken(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const response = await getMeApi();
+        if (isMounted) {
+          if (response && response.success && response.user) {
+            const verifiedUser = {
+              ...response.user,
+              avatar: getAvatarInitials(response.user.name),
+            };
+            setUser(verifiedUser);
+            setToken(storedToken);
+            localStorage.setItem(USER_KEY, JSON.stringify(verifiedUser));
+          } else {
+            logout();
+          }
+        }
+      } catch (err) {
+        console.warn('[AuthContext] Token verification failed:', err.message);
+        if (isMounted) {
+          logout();
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    verifyExistingAuth();
+
+    // Listen for unauthorized 401 events dispatched by apiClient
+    const handleUnauthorized = () => {
+      logout();
+    };
+    window.addEventListener('buildops:auth:unauthorized', handleUnauthorized);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('buildops:auth:unauthorized', handleUnauthorized);
+    };
+  }, [logout]);
+
+  /**
+   * Log in user with email & password via backend API
+   * @param {Object} credentials - { email, password }
    */
   const login = useCallback(async (credentials = {}) => {
-    const email = (credentials.email || 'alex.morgan@buildops.ai').trim();
-    const name = credentials.name || (email.startsWith('alex.morgan@') ? 'Alex Morgan' : email.split('@')[0]);
-    const role = credentials.role || 'Project Director';
-    const avatar = credentials.avatar || name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'AM';
+    const { email, password } = credentials;
 
-    const userData = {
-      id: `USR-${Date.now().toString().slice(-4)}`,
-      name,
-      email,
-      role,
-      avatar,
+    const response = await loginApi({
+      email: (email || '').trim(),
+      password,
+    });
+
+    if (!response || !response.success || !response.token) {
+      throw new Error(response?.message || 'Login failed. Please verify your credentials.');
+    }
+
+    const authUser = {
+      ...response.user,
+      avatar: getAvatarInitials(response.user?.name),
       loginAt: new Date().toISOString(),
     };
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+      localStorage.setItem(TOKEN_KEY, response.token);
+      localStorage.setItem(USER_KEY, JSON.stringify(authUser));
     } catch (err) {
-      console.warn('Failed to persist auth user to localStorage:', err);
+      console.warn('[AuthContext] Failed to persist auth to localStorage:', err);
     }
 
-    setUser(userData);
-    return userData;
+    setToken(response.token);
+    setUser(authUser);
+    return authUser;
   }, []);
 
   /**
-   * Log out user, purge storage, and clear cookies
+   * Register a new user via backend API
+   * @param {Object} userData - { name, email, password, role }
    */
-  const logout = useCallback(() => {
-    // 1. Clear in-memory user state
-    setUser(null);
+  const register = useCallback(async (userData = {}) => {
+    const response = await registerApi(userData);
 
-    // 2. Remove localStorage items
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem('buildflow_token');
-      localStorage.removeItem('token');
-      localStorage.removeItem('auth');
-    } catch (err) {
-      console.warn('Failed to clear localStorage on logout:', err);
+    if (!response || !response.success || !response.token) {
+      throw new Error(response?.message || 'Registration failed.');
     }
 
-    // 3. Clear sessionStorage
+    const authUser = {
+      ...response.user,
+      avatar: getAvatarInitials(response.user?.name),
+      loginAt: new Date().toISOString(),
+    };
+
     try {
-      sessionStorage.clear();
+      localStorage.setItem(TOKEN_KEY, response.token);
+      localStorage.setItem(USER_KEY, JSON.stringify(authUser));
     } catch (err) {
-      console.warn('Failed to clear sessionStorage on logout:', err);
+      console.warn('[AuthContext] Failed to persist auth to localStorage:', err);
     }
 
-    // 4. Clear any auth cookies if present
-    try {
-      document.cookie.split(';').forEach((cookie) => {
-        const name = cookie.split('=')[0].trim();
-        if (name.toLowerCase().includes('token') || name.toLowerCase().includes('auth') || name.toLowerCase().includes('session')) {
-          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-        }
-      });
-    } catch (err) {
-      console.warn('Failed to clear cookies on logout:', err);
-    }
+    setToken(response.token);
+    setUser(authUser);
+    return authUser;
+  }, []);
+
+  /**
+   * Update current user profile fields in memory and localStorage
+   * @param {Object} updates - Fields to update (e.g. { role, name, email })
+   */
+  const updateUser = useCallback((updates = {}) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...updates };
+      if (updates.name) {
+        updated.avatar = getAvatarInitials(updates.name);
+      }
+      try {
+        localStorage.setItem(USER_KEY, JSON.stringify(updated));
+      } catch (err) {
+        console.warn('[AuthContext] Failed to persist updated user:', err);
+      }
+      return updated;
+    });
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated,
+        isLoading,
+        login,
+        register,
+        logout,
+        updateUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -69,6 +69,7 @@ export const projectController = {
         progress: progress !== undefined && progress !== '' ? Number(progress) : 0,
         status: status || 'Planning',
         risk: risk || 'Low',
+        organizationId: req.user?.organizationId || req.body.organizationId || null,
       };
 
       const newProject = await projectService.createProject(projectData);

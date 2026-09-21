@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../context/AuthContext';
 import {
   IconDashboard,
   IconProjects,
@@ -10,6 +11,7 @@ import {
   IconReports,
   IconInsights,
   IconChevronRight,
+  IconNetwork,
 } from '../common/Icons';
 
 /**
@@ -27,6 +29,10 @@ export const Sidebar = ({
   onToggleCollapse,
 }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const userName = user?.name || 'Alex Morgan';
+  const userRole = user?.role || 'Project Manager';
+  const userAvatar = user?.avatar || 'AM';
 
   const handleNavClick = (tabId) => {
     onSelectTab(tabId);
@@ -40,20 +46,11 @@ export const Sidebar = ({
     { id: 'materials', label: 'Materials', icon: <IconMaterials size={19} /> },
     { id: 'site-updates', label: 'Site Updates', icon: <IconSiteUpdates size={19} /> },
     { id: 'documents', label: 'Documents', icon: <IconDocuments size={19} /> },
+    { id: 'network', label: 'Business Network', icon: <IconNetwork size={19} /> },
   ];
 
   const secondaryNavItems = [
     { id: 'insights', label: 'AI Insights', icon: <IconInsights size={19} /> },
-    {
-      id: 'risk-radar',
-      label: 'Risk Radar',
-      icon: (
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 3v9l6 3" />
-        </svg>
-      ),
-    },
     { id: 'reports', label: 'Reports', icon: <IconReports size={19} /> },
   ];
 
@@ -76,6 +73,54 @@ export const Sidebar = ({
             left: 0;
             z-index: 40;
             box-shadow: none;
+            transition: transform 0.18s ease-in-out !important;
+          }
+
+          .clean-sidebar.collapsed {
+            transform: translateX(-240px) !important;
+          }
+
+          .sidebar-edge-toggle {
+            position: absolute;
+            top: 72px;
+            right: -13px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            border: 1px solid #CBD5E1;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1), 0 1px 2px rgba(15, 23, 42, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748B;
+            cursor: pointer;
+            z-index: 50;
+            padding: 0;
+            outline: none;
+            transition: right 0.18s ease-in-out, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+          }
+
+          .sidebar-edge-toggle:hover {
+            background: #F8FAFC;
+            color: #1677D2;
+            border-color: #94A3B8;
+            box-shadow: 0 2px 6px rgba(22, 119, 210, 0.18), 0 1px 3px rgba(0, 0, 0, 0.08);
+            transform: scale(1.06);
+          }
+
+          .sidebar-edge-toggle:active {
+            transform: scale(0.96);
+          }
+
+          .clean-sidebar.collapsed .sidebar-edge-toggle {
+            right: -36px;
+          }
+
+          @media (max-width: 768px) {
+            .sidebar-edge-toggle {
+              display: none !important;
+            }
           }
 
           .clean-sidebar-header {
@@ -246,6 +291,44 @@ export const Sidebar = ({
           }
         `}</style>
 
+        {/* Left Sidebar Edge Toggle Button (Hide / Show) */}
+        <button
+          type="button"
+          id="sidebarToggleBtn"
+          className="sidebar-edge-toggle"
+          onClick={onToggleCollapse}
+          aria-label={isCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+          title={isCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+        >
+          {isCollapsed ? (
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          ) : (
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          )}
+        </button>
+
         {/* Brand Header */}
         <div className="clean-sidebar-header">
           <div
@@ -269,14 +352,12 @@ export const Sidebar = ({
                 <rect x="28.5" y="27" width="3" height="3" rx="0.5" fill="#FFFFFF" fillOpacity="0.8" />
               </svg>
             </div>
-            {!isCollapsed && (
-              <div className="clean-brand-text-wrap">
-                <span className="clean-brand-name">
-                  BuildOps <span>AI</span>
-                </span>
-                <span className="clean-brand-tagline">AI-POWERED CONSTRUCTION OPERATIONS</span>
-              </div>
-            )}
+            <div className="clean-brand-text-wrap">
+              <span className="clean-brand-name">
+                BuildOps <span>AI</span>
+              </span>
+              <span className="clean-brand-tagline">AI-POWERED CONSTRUCTION OPERATIONS</span>
+            </div>
           </div>
         </div>
 
@@ -295,10 +376,10 @@ export const Sidebar = ({
                 type="button"
                 className={`clean-nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => handleNavClick(item.id)}
-                title={isCollapsed ? item.label : undefined}
+                title={item.label}
               >
                 <span className="nav-icon">{item.icon}</span>
-                {!isCollapsed && <span>{item.label}</span>}
+                <span>{item.label}</span>
               </button>
             );
           })}
@@ -314,10 +395,10 @@ export const Sidebar = ({
                 type="button"
                 className={`clean-nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => handleNavClick(item.id)}
-                title={isCollapsed ? item.label : undefined}
+                title={item.label}
               >
                 <span className="nav-icon">{item.icon}</span>
-                {!isCollapsed && <span>{item.label}</span>}
+                <span>{item.label}</span>
               </button>
             );
           })}
@@ -328,20 +409,16 @@ export const Sidebar = ({
           <div
             className="clean-user-card"
             onClick={() => handleNavClick('settings')}
-            title="Alex Morgan — Project Director"
+            title={`${userName} — ${userRole}`}
           >
-            <div className="clean-user-avatar">AM</div>
-            {!isCollapsed && (
-              <>
-                <div className="clean-user-meta">
-                  <div className="clean-user-name">Alex Morgan</div>
-                  <div className="clean-user-role">Project Director</div>
-                </div>
-                <div className="clean-user-chevron">
-                  <IconChevronRight size={14} />
-                </div>
-              </>
-            )}
+            <div className="clean-user-avatar">{userAvatar}</div>
+            <div className="clean-user-meta">
+              <div className="clean-user-name">{userName}</div>
+              <div className="clean-user-role">{userRole}</div>
+            </div>
+            <div className="clean-user-chevron">
+              <IconChevronRight size={14} />
+            </div>
           </div>
         </div>
       </aside>

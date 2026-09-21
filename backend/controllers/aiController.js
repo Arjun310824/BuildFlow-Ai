@@ -2,6 +2,9 @@ import mongoose from 'mongoose';
 import { analyzeProject as analyzeProjectService, chatWithProject } from '../services/projectAnalysisService.js';
 import Project from '../models/Project.js';
 import { analyzeProjectWithAI } from '../services/aiService.js';
+import { detectProjectRisks, detectPortfolioRisks } from '../services/riskAnalysisService.js';
+import { generateProjectBriefing } from '../services/projectBriefingService.js';
+import { generateProjectReport } from '../services/projectReportService.js';
 
 /**
  * @desc   Analyze a specific construction project using real MongoDB data and Gemini AI
@@ -15,6 +18,7 @@ export const handleAnalyzeProject = async (req, res, next) => {
     if (!projectId) {
       return res.status(400).json({
         success: false,
+        message: 'projectId is required in request body.',
         error: 'projectId is required in request body.',
       });
     }
@@ -30,133 +34,6 @@ export const handleAnalyzeProject = async (req, res, next) => {
     next(error);
   }
 };
-
-// Realistic fallback construction datasets for local dev/testing before DB seeding
-const FALLBACK_PROJECTS = [
-  {
-    id: 'PRJ-101',
-    name: 'Skyline Commercial Tower B',
-    location: 'Downtown Metro, Block 4',
-    type: 'Commercial High-Rise',
-    manager: 'David Chen',
-    progress: 68,
-    status: 'On Track',
-    budget: '$18.4M',
-    spent: '$12.5M',
-    deadline: 'Nov 2026',
-  },
-  {
-    id: 'PRJ-102',
-    name: 'Riverfront Residential Phase II',
-    location: 'North Bay District',
-    type: 'Residential Complex',
-    manager: 'Sarah Jenkins',
-    progress: 42,
-    status: 'At Risk',
-    budget: '$9.2M',
-    spent: '$4.8M',
-    deadline: 'Jan 2027',
-  },
-  {
-    id: 'PRJ-103',
-    name: 'Apex Logistics Distribution Hub',
-    location: 'Western Industrial Park',
-    type: 'Industrial Facility',
-    manager: 'Marcus Vance',
-    progress: 89,
-    status: 'On Track',
-    budget: '$14.0M',
-    spent: '$12.1M',
-    deadline: 'May 2026',
-  },
-  {
-    id: 'PRJ-104',
-    name: 'Metro Hospital Expansion Wing',
-    location: 'Central Medical District',
-    type: 'Healthcare Infrastructure',
-    manager: 'Elena Ramos',
-    progress: 31,
-    status: 'Delayed',
-    budget: '$22.5M',
-    spent: '$9.1M',
-    deadline: 'Aug 2027',
-  },
-];
-
-const FALLBACK_TASKS = [
-  {
-    id: 'TSK-401',
-    title: 'Foundation Slab Pouring - Sector 3',
-    project: 'Riverfront Residential Phase II',
-    assignee: 'Robert K. (Structural Lead)',
-    priority: 'High',
-    status: 'Delayed',
-    dueDate: 'Sep 18, 2026',
-  },
-  {
-    id: 'TSK-402',
-    title: 'HVAC Ductwork Installation Lvl 8-12',
-    project: 'Skyline Commercial Tower B',
-    assignee: 'Apex MEP Contractors',
-    priority: 'Medium',
-    status: 'In Progress',
-    dueDate: 'Sep 24, 2026',
-  },
-  {
-    id: 'TSK-403',
-    title: 'Curtain Wall Glazing Inspection',
-    project: 'Apex Logistics Distribution Hub',
-    assignee: 'QA/QC Inspection Team',
-    priority: 'High',
-    status: 'Completed',
-    dueDate: 'Sep 19, 2026',
-  },
-  {
-    id: 'TSK-404',
-    title: 'Fire Suppression Pipeline Pressure Test',
-    project: 'Metro Hospital Expansion Wing',
-    assignee: 'Safety Works Inc.',
-    priority: 'Critical',
-    status: 'Delayed',
-    dueDate: 'Sep 15, 2026',
-  },
-  {
-    id: 'TSK-405',
-    title: 'Steel Rebar Procurement Audit',
-    project: 'Skyline Commercial Tower B',
-    assignee: 'Supply Chain Team',
-    priority: 'Low',
-    status: 'In Progress',
-    dueDate: 'Sep 28, 2026',
-  },
-];
-
-const FALLBACK_MATERIALS = [
-  {
-    id: 'MAT-01',
-    material: 'Grade 60 Structural Steel Rebar',
-    project: 'Riverfront Residential Phase II',
-    currentStock: '14.2 Tons',
-    requiredStock: '45.0 Tons',
-    status: 'Critical Low',
-  },
-  {
-    id: 'MAT-02',
-    material: 'Ready-Mix Concrete M40',
-    project: 'Skyline Commercial Tower B',
-    currentStock: '60 m³',
-    requiredStock: '180 m³',
-    status: 'Restock Needed',
-  },
-  {
-    id: 'MAT-03',
-    material: 'Tempered Glass Panels (Double Glazed)',
-    project: 'Apex Logistics Distribution Hub',
-    currentStock: '48 Units',
-    requiredStock: '120 Units',
-    status: 'Delayed Shipment',
-  },
-];
 
 /**
  * Safely resolves registered Mongoose models or dynamically imports them from models folder.
@@ -175,8 +52,6 @@ const resolveModel = async (modelName) => {
   const paths = [
     `../models/${modelName}.js`,
     `../models/${modelName.toLowerCase()}.js`,
-    `../src/models/${modelName}.js`,
-    `../src/models/${modelName.toLowerCase()}.js`,
   ];
 
   for (const p of paths) {
@@ -269,30 +144,7 @@ export const getProjectAnalysis = async (req, res, next) => {
       }
     }
 
-    // 4. Fallback check for dev/testing when DB is unseeded or models are pending
-    if (!project) {
-      const matchedMock = FALLBACK_PROJECTS.find(
-        (p) =>
-          p.id.toLowerCase() === cleanProjectId.toLowerCase() ||
-          p.name.toLowerCase() === cleanProjectId.toLowerCase()
-      );
-
-      if (matchedMock) {
-        project = matchedMock;
-        tasks = FALLBACK_TASKS.filter(
-          (t) =>
-            t.project?.toLowerCase() === project.name.toLowerCase() ||
-            t.project?.toLowerCase() === project.id.toLowerCase()
-        );
-        materials = FALLBACK_MATERIALS.filter(
-          (m) =>
-            m.project?.toLowerCase() === project.name.toLowerCase() ||
-            m.project?.toLowerCase() === project.id.toLowerCase()
-        );
-      }
-    }
-
-    // 5. Handle project not found
+    // 4. Handle project not found in MongoDB
     if (!project) {
       return res.status(404).json({
         success: false,
@@ -300,7 +152,7 @@ export const getProjectAnalysis = async (req, res, next) => {
       });
     }
 
-    // 6. Invoke AI Service layer
+    // 5. Invoke AI Service layer
     try {
       const aiAnalysis = await analyzeProjectWithAI(project, tasks, materials);
 
@@ -361,29 +213,57 @@ export const analyzeProject = async (req, res, next) => {
  */
 export const handleProjectChat = async (req, res, next) => {
   try {
-    const { projectId, message } = req.body;
+    const { projectId, message, images = [], documents = [], conversationHistory = [] } = req.body;
 
-    if (!projectId) {
+    const validProjectId = projectId && projectId !== 'all' ? projectId : null;
+    const hasImages = Array.isArray(images) && images.length > 0;
+    const hasDocs = Array.isArray(documents) && documents.length > 0;
+    const cleanMessage = (message || '').trim();
+
+    if (!cleanMessage && !hasImages && !hasDocs) {
       return res.status(400).json({
         success: false,
-        error: 'projectId is required.',
+        error: 'Message string, document, or image attachment is required.',
       });
     }
 
-    if (!message || !message.trim()) {
-      return res.status(400).json({
+    try {
+      const chatResult = await chatWithProject(
+        validProjectId,
+        cleanMessage,
+        images,
+        documents,
+        conversationHistory
+      );
+
+      const answer = typeof chatResult === 'object' ? chatResult.answer : chatResult;
+      const sources = typeof chatResult === 'object' ? (chatResult.sources || []) : [];
+      const confidence = typeof chatResult === 'object' ? (chatResult.confidence || 'High') : 'High';
+
+      return res.status(200).json({
+        success: true,
+        answer,
+        sources,
+        confidence,
+        projectId: validProjectId || 'all',
+      });
+    } catch (chatError) {
+      console.error(`[AI Chat Error] ${chatError.message}`);
+
+      // Client validation errors (unsupported format, image too large, >3 images, 404 project not found)
+      if (chatError.statusCode === 400 || chatError.statusCode === 404) {
+        return res.status(chatError.statusCode).json({
+          success: false,
+          error: chatError.message,
+        });
+      }
+
+      // Safe user-friendly failure response without leaking internal details or API keys
+      return res.status(502).json({
         success: false,
-        error: 'message string is required.',
+        error: "BuildOps AI couldn't process this request right now. Please try again.",
       });
     }
-
-    const answer = await chatWithProject(projectId, message);
-
-    return res.status(200).json({
-      success: true,
-      answer,
-      projectId,
-    });
   } catch (error) {
     next(error);
   }
@@ -406,6 +286,170 @@ export const handleGetAiProjects = async (req, res, next) => {
       data: projects,
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc   Detect and analyze operational risks using real MongoDB project data (Task 9)
+ * @route  GET /api/ai/project-risk/:projectId
+ * @access Public
+ */
+export const handleGetProjectRisk = async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+
+    if (!projectId) {
+      return res.status(400).json({
+        success: false,
+        error: 'projectId parameter is required.',
+      });
+    }
+
+    if (projectId === 'all') {
+      const portfolioAnalysis = await detectPortfolioRisks();
+      return res.status(200).json({
+        success: true,
+        data: portfolioAnalysis,
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid project ID format: ${projectId}`,
+      });
+    }
+
+    const projectAnalysis = await detectProjectRisks(projectId);
+    return res.status(200).json({
+      success: true,
+      data: projectAnalysis,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        error: error.message,
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * @desc   Generate an on-demand AI Project Briefing using real MongoDB data (Task 11)
+ * @route  GET /api/ai/project-briefing/:projectId
+ * @access Public
+ */
+export const handleGetProjectBriefing = async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+
+    if (!projectId) {
+      return res.status(400).json({
+        success: false,
+        error: 'projectId parameter is required.',
+      });
+    }
+
+    if (projectId !== 'all' && !mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid project ID format: ${projectId}`,
+      });
+    }
+
+    const briefingResult = await generateProjectBriefing(projectId);
+    return res.status(200).json({
+      success: true,
+      data: briefingResult,
+      answer: briefingResult.answer,
+      sources: briefingResult.sources,
+      confidence: briefingResult.confidence,
+      briefingData: briefingResult.briefingData,
+      projectId: briefingResult.projectId,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        error: error.message,
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * @desc   Generate an AI-powered construction project report using real MongoDB data (Task 12)
+ * @route  POST /api/ai/generate-report
+ * @access Public
+ */
+export const handleGenerateReport = async (req, res, next) => {
+  try {
+    const { projectId, reportType, conversationId, message } = req.body;
+
+    if (!projectId) {
+      return res.status(400).json({
+        success: false,
+        error: 'projectId is required in request body.',
+      });
+    }
+
+    if (projectId !== 'all' && !mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid project ID format: ${projectId}`,
+      });
+    }
+
+    const reportResult = await generateProjectReport(projectId, reportType);
+
+    // If conversationId is provided, persist the exchange to MongoDB conversation history (Task 6)
+    if (conversationId && mongoose.Types.ObjectId.isValid(conversationId)) {
+      try {
+        const Conversation = (await import('../models/Conversation.js')).default;
+        const conv = await Conversation.findById(conversationId);
+        if (conv) {
+          const userPrompt = message || `Generate ${reportResult.reportType}`;
+          conv.messages.push({
+            role: 'user',
+            content: userPrompt,
+            createdAt: new Date(),
+          });
+          conv.messages.push({
+            role: 'assistant',
+            content: reportResult.answer,
+            sources: reportResult.sources,
+            confidence: reportResult.confidence,
+            createdAt: new Date(),
+          });
+          conv.lastMessageSnippet = reportResult.answer.slice(0, 120);
+          await conv.save();
+        }
+      } catch (convErr) {
+        console.warn(`[AI Controller] Failed to persist report in conversation ${conversationId}:`, convErr.message);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      report: reportResult,
+      answer: reportResult.answer,
+      sources: reportResult.sources,
+      confidence: reportResult.confidence,
+      reportData: reportResult.reportData,
+      reportType: reportResult.reportType,
+      projectId: reportResult.projectId,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        error: error.message,
+      });
+    }
     next(error);
   }
 };

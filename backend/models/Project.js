@@ -57,6 +57,11 @@ const projectSchema = new mongoose.Schema(
       },
       default: 'Low',
     },
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      index: true,
+    },
   },
   {
     timestamps: true,

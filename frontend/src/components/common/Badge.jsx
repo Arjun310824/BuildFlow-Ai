@@ -7,14 +7,16 @@ export const StatusBadge = ({ status }) => {
   const getBadgeClass = (val) => {
     switch (val?.toLowerCase()) {
       case 'completed':
-        return 'badge-status-completed';
+        return 'badge-completed';
       case 'in progress':
       case 'active':
-        return 'badge-status-inprogress';
+        return 'badge-in-progress';
       case 'on hold':
-        return 'badge-status-onhold';
+        return 'badge-at-risk';
       case 'planning':
-        return 'badge-status-planning';
+      case 'pending':
+      case 'not started':
+        return 'badge-pending';
       case 'healthy':
       case 'in stock':
       case 'available':
@@ -34,10 +36,8 @@ export const StatusBadge = ({ status }) => {
       case 'out of stock':
       case 'high risk':
         return 'badge-delayed';
-      case 'pending':
-        return 'badge-pending';
       default:
-        return 'badge-status-planning';
+        return 'badge-pending';
     }
   };
 
@@ -64,6 +64,8 @@ export const StatusBadge = ({ status }) => {
         return t('status.critical');
       case 'pending':
         return t('status.pending');
+      case 'not started':
+        return t('status.notStarted');
       case 'available':
         return t('status.available');
       case 'in stock':

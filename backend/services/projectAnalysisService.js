@@ -1,4 +1,4 @@
-import { getProjectContext } from './projectDataService.js';
+import { getProjectContext, getChatContext } from './projectDataService.js';
 import { generateProjectAnalysis, generateProjectChatResponse } from './aiService.js';
 
 /**
@@ -106,21 +106,35 @@ export const analyzeProject = async (projectId) => {
 };
 
 /**
- * Project-Aware Chat interaction pipeline
+ * Project-Aware Chat interaction pipeline with multimodal image, PDF document, and conversation history support
  * @param {string} projectId
  * @param {string} message
- * @returns {Promise<string>}
+ * @param {Array} [images=[]]
+ * @param {Array} [documents=[]]
+ * @param {Array} [conversationHistory=[]]
+ * @returns {Promise<{ answer: string, sources: Array<{ type: string, label: string }>, confidence: string }>}
  */
-export const chatWithProject = async (projectId, message) => {
-  if (!message || !message.trim()) {
-    const error = new Error('Chat message cannot be empty.');
+export const chatWithProject = async (
+  projectId,
+  message,
+  images = [],
+  documents = [],
+  conversationHistory = []
+) => {
+  const hasImages = Array.isArray(images) && images.length > 0;
+  const hasDocs = Array.isArray(documents) && documents.length > 0;
+  const cleanMessage = (message || '').trim();
+
+  if (!cleanMessage && !hasImages && !hasDocs) {
+    const error = new Error('Chat message, document, or image attachment is required.');
     error.statusCode = 400;
     throw error;
   }
 
-  // Fetch real project data
-  const context = await getProjectContext(projectId);
+  // Fetch real project data + portfolio summary (validates project existence)
+  const context = await getChatContext(projectId);
 
-  // Query Gemini with context + user message
-  return await generateProjectChatResponse(context, message.trim());
+  // Query Gemini with context + user message + images + documents + conversation history
+  return await generateProjectChatResponse(context, cleanMessage, images, documents, conversationHistory);
 };
+

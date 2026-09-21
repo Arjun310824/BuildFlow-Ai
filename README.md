@@ -55,7 +55,7 @@ Provides a holistic operational summary of active construction projects from a s
 - Delayed Tasks requiring attention
 - Material & Inventory Shortage Alerts
 - Overall Construction Progress & Budget Utilization
-- Site Risk Radar
+- Site Risk Analysis & Mitigation
 
 ### 2. 🏗️ Project Management
 Centralized repository for construction sites:

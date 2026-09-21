@@ -16,6 +16,7 @@ import {
   deleteMaterialApi,
 } from './services/api';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 // Pages
 import { Login } from './pages/Login';
@@ -33,12 +34,11 @@ import { Reports } from './pages/Reports';
 import { AIInsights } from './pages/AIInsights';
 import { Alerts } from './pages/Alerts';
 import { Settings } from './pages/Settings';
+import { BusinessNetwork } from './pages/BusinessNetwork';
+import { downloadVaultDocument, exportRealReport } from './utils/fileDownloader';
 
-// Mock Data
+// Unconnected Demo Data for static modules
 import {
-  initialProjects,
-  initialTasks,
-  initialMaterials,
   initialSuppliers,
   initialSiteUpdates,
   initialDocuments,
@@ -60,14 +60,17 @@ const TAB_TO_PATH = {
   documents: '/documents',
   reports: '/reports',
   insights: '/insights',
+  network: '/network',
   alerts: '/alerts',
   settings: '/settings',
 };
 
 const PATH_TO_TAB = {
   '/login': 'login',
+  '/register': 'login',
   '/': 'dashboard',
   '/dashboard': 'dashboard',
+  '/risk-radar': 'dashboard',
   '/projects': 'projects',
   '/add-project': 'add-project',
   '/project-details': 'project-details',
@@ -79,40 +82,50 @@ const PATH_TO_TAB = {
   '/documents': 'documents',
   '/reports': 'reports',
   '/insights': 'insights',
+  '/ai': 'insights',
+  '/network': 'network',
   '/alerts': 'alerts',
   '/settings': 'settings',
 };
 
 function AppContent() {
   const { t } = useTranslation();
-  const { user, isAuthenticated, login, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, login, register, logout } = useAuth();
 
   // Route & Navigation State
   const [activeTab, setActiveTab] = useState(() => {
     const path = window.location.pathname;
-    if (!isAuthenticated) {
-      if (path !== '/login') {
-        window.history.replaceState(null, '', '/login');
-      }
-      return 'login';
-    } else {
-      if (path === '/login' || path === '/') {
-        window.history.replaceState(null, '', '/dashboard');
-        return 'dashboard';
-      }
-      return PATH_TO_TAB[path] || 'dashboard';
+    if (path === '/login' || path === '/register') return 'login';
+    return PATH_TO_TAB[path] || 'dashboard';
+  });
+
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('buildops_sidebar_collapsed') === 'true';
+    } catch (e) {
+      return false;
     }
   });
 
-  const [selectedProjectId, setSelectedProjectId] = useState('PRJ-101');
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const handleToggleSidebar = useCallback(() => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('buildops_sidebar_collapsed', String(next));
+      } catch (e) {}
+      return next;
+    });
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [toasts, setToasts] = useState([]);
 
-  // Reactive Application Data Stores
-  const [projects, setProjects] = useState(initialProjects);
-  const [tasks, setTasks] = useState(initialTasks);
-  const [materials, setMaterials] = useState(initialMaterials);
+  // Reactive Application Data Stores — Populated directly from MongoDB backend
+  const [projects, setProjects] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [materials, setMaterials] = useState([]);
   const [suppliers, setSuppliers] = useState(initialSuppliers);
   const [siteUpdates, setSiteUpdates] = useState(initialSiteUpdates);
   const [documents, setDocuments] = useState(initialDocuments);
@@ -133,18 +146,29 @@ function AppContent() {
 
   // Protected Route Guard & URL Synchronization
   useEffect(() => {
+    if (isLoading) return;
+
     const currentPath = window.location.pathname;
     if (!isAuthenticated) {
+      if (currentPath !== '/login' && currentPath !== '/register') {
+        // Retain attempted private route for post-login redirect (Section 12)
+        sessionStorage.setItem('buildops_redirect_path', currentPath);
+        window.history.replaceState(null, '', '/login');
+      }
       if (activeTab !== 'login') {
         setActiveTab('login');
       }
-      if (currentPath !== '/login') {
-        window.history.replaceState(null, '', '/login');
-      }
     } else {
       if (activeTab === 'login') {
-        setActiveTab('dashboard');
+        const savedRedirect = sessionStorage.getItem('buildops_redirect_path');
+        sessionStorage.removeItem('buildops_redirect_path');
+        const targetTab = savedRedirect && PATH_TO_TAB[savedRedirect] ? PATH_TO_TAB[savedRedirect] : 'dashboard';
+        const expectedPath = TAB_TO_PATH[targetTab] || '/dashboard';
+        setActiveTab(targetTab);
+        window.history.replaceState(null, '', expectedPath);
+      } else if (currentPath === '/login' || currentPath === '/register' || currentPath === '/risk-radar') {
         window.history.replaceState(null, '', '/dashboard');
+        setActiveTab('dashboard');
       } else {
         const expectedPath = TAB_TO_PATH[activeTab] || '/dashboard';
         if (currentPath !== expectedPath) {
@@ -152,19 +176,22 @@ function AppContent() {
         }
       }
     }
-  }, [isAuthenticated, activeTab]);
+  }, [isAuthenticated, isLoading, activeTab]);
 
   // Browser Back/Forward Popstate Listener
   useEffect(() => {
+    if (isLoading) return;
+
     const handlePopState = () => {
       const currentPath = window.location.pathname;
       if (!isAuthenticated) {
-        if (currentPath !== '/login') {
+        if (currentPath !== '/login' && currentPath !== '/register') {
+          sessionStorage.setItem('buildops_redirect_path', currentPath);
           window.history.replaceState(null, '', '/login');
         }
         setActiveTab('login');
       } else {
-        if (currentPath === '/login') {
+        if (currentPath === '/login' || currentPath === '/register' || currentPath === '/risk-radar') {
           window.history.replaceState(null, '', '/dashboard');
           setActiveTab('dashboard');
         } else {
@@ -176,10 +203,12 @@ function AppContent() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isLoading]);
 
-  // Initial data fetch from MongoDB (Projects, Tasks, Materials)
+  // Initial data fetch from MongoDB (Projects, Tasks, Materials) — only runs when authenticated
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const loadInitialData = async () => {
       try {
         const [projRes, taskRes, matRes] = await Promise.allSettled([
@@ -192,7 +221,7 @@ function AppContent() {
           setProjects(projRes.value.data);
           const firstId = projRes.value.data[0]._id || projRes.value.data[0].id;
           if (firstId) {
-            setSelectedProjectId(firstId);
+            setSelectedProjectId((prev) => (prev && /^[0-9a-fA-F]{24}$/.test(prev) ? prev : firstId));
           }
         }
 
@@ -208,11 +237,16 @@ function AppContent() {
       }
     };
     loadInitialData();
-  }, []);
+  }, [isAuthenticated]);
 
   // Central Navigation Handler with Protected Route Checks
   const handleNavigate = (targetTab) => {
+    if (targetTab === 'risk-radar') {
+      targetTab = 'dashboard';
+    }
+
     if (!isAuthenticated && targetTab !== 'login') {
+      sessionStorage.setItem('buildops_redirect_path', TAB_TO_PATH[targetTab] || `/${targetTab}`);
       setActiveTab('login');
       window.history.replaceState(null, '', '/login');
       return;
@@ -234,13 +268,29 @@ function AppContent() {
   // Auth Action Handlers
   const handleLoginSuccess = async (credentials) => {
     const loggedInUser = await login(credentials);
-    window.history.replaceState(null, '', '/dashboard');
-    setActiveTab('dashboard');
+    const savedRedirect = sessionStorage.getItem('buildops_redirect_path');
+    sessionStorage.removeItem('buildops_redirect_path');
+    const targetTab = savedRedirect && PATH_TO_TAB[savedRedirect] ? PATH_TO_TAB[savedRedirect] : 'dashboard';
+    const targetPath = TAB_TO_PATH[targetTab] || '/dashboard';
+    window.history.replaceState(null, '', targetPath);
+    setActiveTab(targetTab);
     addToast(`Welcome back, ${loggedInUser.name}!`, 'success');
+  };
+
+  const handleRegisterSuccess = async (userData) => {
+    const registeredUser = await register(userData);
+    const savedRedirect = sessionStorage.getItem('buildops_redirect_path');
+    sessionStorage.removeItem('buildops_redirect_path');
+    const targetTab = savedRedirect && PATH_TO_TAB[savedRedirect] ? PATH_TO_TAB[savedRedirect] : 'dashboard';
+    const targetPath = TAB_TO_PATH[targetTab] || '/dashboard';
+    window.history.replaceState(null, '', targetPath);
+    setActiveTab(targetTab);
+    addToast(`Welcome to BuildOps AI, ${registeredUser.name}!`, 'success');
   };
 
   const handleSignOut = () => {
     logout();
+    sessionStorage.removeItem('buildops_redirect_path');
     window.history.replaceState(null, '', '/login');
     setActiveTab('login');
     addToast('You have been logged out successfully.', 'info');
@@ -274,7 +324,7 @@ function AppContent() {
   const handleAddTask = async (newTask) => {
     // If newTask was already persisted to MongoDB by AddTask.jsx
     if (newTask && newTask._id) {
-      setTasks((prev) => [newTask, ...prev]);
+      setTasks((prev) => [newTask, ...prev.filter((t) => (t._id || t.id) !== newTask._id)]);
       addToast(`Task "${newTask.title || newTask.name}" assigned successfully!`, 'success');
       return;
     }
@@ -289,12 +339,17 @@ function AppContent() {
         targetProjectId = matched?._id || matched?.id;
       }
 
+      if (!targetProjectId || !/^[0-9a-fA-F]{24}$/.test(targetProjectId)) {
+        addToast('Cannot assign task: valid project ObjectId is required.', 'error');
+        return;
+      }
+
       const payload = {
         projectId: targetProjectId,
         title: newTask.title || newTask.name,
         description: newTask.description || '',
         assignedTo: newTask.assignedTo || '',
-        startDate: newTask.startDate || new Date().toISOString().slice(0, 10),
+        startDate: newTask.startDate || undefined,
         dueDate: newTask.dueDate || new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
         status: ['Not Started', 'In Progress', 'Completed', 'Delayed'].includes(newTask.status)
           ? newTask.status
@@ -310,13 +365,11 @@ function AppContent() {
         setTasks((prev) => [res.data, ...prev]);
         addToast(`Task "${res.data.title || res.data.name}" assigned successfully!`, 'success');
       } else {
-        setTasks((prev) => [newTask, ...prev]);
-        addToast(`Task "${newTask.name || newTask.title}" assigned locally.`, 'info');
+        addToast(res?.message || 'Failed to create task.', 'error');
       }
     } catch (err) {
       console.error('Error creating task in MongoDB:', err);
-      setTasks((prev) => [newTask, ...prev]);
-      addToast(err.message || 'Task saved locally (MongoDB sync warning)', 'warning');
+      addToast(err.message || 'Failed to create task in MongoDB', 'error');
     }
   };
 
@@ -335,7 +388,23 @@ function AppContent() {
     }
   };
 
+  const handleDeleteTask = (taskId) => {
+    setTasks((prev) => prev.filter((t) => (t._id || t.id) !== taskId));
+  };
+
+  const handleUpdateTask = (updatedTask) => {
+    setTasks((prev) =>
+      prev.map((t) => ((t._id || t.id) === (updatedTask._id || updatedTask.id) ? updatedTask : t))
+    );
+  };
+
   const handleAddMaterial = async (newMat) => {
+    if (newMat && newMat._id) {
+      setMaterials((prev) => [newMat, ...prev.filter((m) => (m._id || m.id) !== newMat._id)]);
+      addToast(`Material "${newMat.name || newMat.material}" logged into inventory.`, 'success');
+      return;
+    }
+
     try {
       let targetProjectId = newMat.projectId;
       if (!targetProjectId || !/^[0-9a-fA-F]{24}$/.test(targetProjectId)) {
@@ -345,11 +414,16 @@ function AppContent() {
         targetProjectId = matched?._id || matched?.id;
       }
 
+      if (!targetProjectId || !/^[0-9a-fA-F]{24}$/.test(targetProjectId)) {
+        addToast('Cannot log material: valid project ObjectId is required.', 'error');
+        return;
+      }
+
       const payload = {
         projectId: targetProjectId,
         name: newMat.name || newMat.material,
         category: newMat.category || 'General',
-        requiredQuantity: Number(newMat.requiredQuantity) || 100,
+        requiredQuantity: Number(newMat.requiredQuantity) || 0,
         availableQuantity: Number(newMat.availableQuantity) || 0,
         usedQuantity: Number(newMat.usedQuantity) || 0,
         unit: newMat.unit || 'units',
@@ -360,14 +434,22 @@ function AppContent() {
         setMaterials((prev) => [res.data, ...prev]);
         addToast(`Material "${res.data.name}" logged into inventory.`, 'success');
       } else {
-        setMaterials((prev) => [newMat, ...prev]);
-        addToast(`Material "${newMat.name || newMat.material}" logged locally.`, 'info');
+        addToast(res?.message || 'Failed to create material record.', 'error');
       }
     } catch (err) {
       console.error('Error creating material in MongoDB:', err);
-      setMaterials((prev) => [newMat, ...prev]);
-      addToast(err.message || 'Material logged locally (MongoDB sync warning)', 'warning');
+      addToast(err.message || 'Failed to log material in MongoDB', 'error');
     }
+  };
+
+  const handleDeleteMaterial = (materialId) => {
+    setMaterials((prev) => prev.filter((m) => (m._id || m.id) !== materialId));
+  };
+
+  const handleUpdateMaterial = (updatedMat) => {
+    setMaterials((prev) =>
+      prev.map((m) => ((m._id || m.id) === (updatedMat._id || updatedMat.id) ? updatedMat : m))
+    );
   };
 
   const handleAddSupplier = (newSup) => {
@@ -391,15 +473,18 @@ function AppContent() {
   };
 
   const handleExportReport = (format) => {
-    addToast(`Generating ${format} report... Download started.`, 'success');
+    exportRealReport(format, { projects, tasks, materials });
+    addToast(`Exported ${format} report successfully! Download started.`, 'success');
   };
 
   const handleReorderMaterial = (mat) => {
     addToast(`Emergency PO drafted for ${mat.material}. Sent to ${mat.supplier}.`, 'success');
   };
 
-  const handleDownloadFeedback = (fileName) => {
-    addToast(`Downloading ${fileName}...`, 'info');
+  const handleDownloadFeedback = (docOrName) => {
+    downloadVaultDocument(docOrName);
+    const fileName = typeof docOrName === 'string' ? docOrName : (docOrName?.name || 'Document');
+    addToast(`Downloaded "${fileName}" successfully!`, 'success');
   };
 
   // Title mappings
@@ -415,7 +500,7 @@ function AppContent() {
       case 'add-project':
         return { title: t('projects.addProject'), subtitle: t('projects.formSubtitle') };
       case 'project-details':
-        return { title: selectedPrj?.name || t('navigation.projectDetails'), subtitle: selectedPrj?.code || t('common.viewDetails') };
+        return { title: selectedPrj?.name || t('navigation.projectDetails'), subtitle: selectedPrj?.client || t('common.viewDetails') };
       case 'tasks':
         return { title: t('navigation.tasks'), subtitle: `${tasks.length} ${t('tasks.title')}` };
       case 'add-task':
@@ -432,6 +517,8 @@ function AppContent() {
         return { title: t('reports.title'), subtitle: t('reports.subtitle') };
       case 'insights':
         return { title: t('aiInsights.title'), subtitle: 'Gemini AI' };
+      case 'network':
+        return { title: 'Business Network', subtitle: 'B2B Collaboration & Controlled Partner Data Sharing' };
       case 'alerts':
         return { title: t('alerts.title'), subtitle: `${alerts.length} ${t('alerts.title')}` };
       case 'settings':
@@ -493,6 +580,8 @@ function AppContent() {
             projects={projects}
             onNavigate={handleNavigate}
             onUpdateTaskStatus={handleUpdateTaskStatus}
+            onDeleteTask={handleDeleteTask}
+            onUpdateTask={handleUpdateTask}
           />
         );
       case 'add-task':
@@ -510,6 +599,8 @@ function AppContent() {
             projects={projects}
             onAddMaterial={handleAddMaterial}
             onReorder={handleReorderMaterial}
+            onDeleteMaterial={handleDeleteMaterial}
+            onUpdateMaterial={handleUpdateMaterial}
           />
         );
       case 'suppliers':
@@ -563,6 +654,12 @@ function AppContent() {
             onSelectProject={setSelectedProjectId}
           />
         );
+      case 'network':
+        return (
+          <BusinessNetwork
+            onTriggerToast={(msg, type) => addToast(msg, type || 'success')}
+          />
+        );
       case 'settings':
         return (
           <Settings
@@ -583,49 +680,62 @@ function AppContent() {
     }
   };
 
-  // If unauthenticated or explicitly on login, show Login Page only (Protected routes completely blocked)
+  // While verifying auth token against /api/auth/me on startup
+  if (isLoading) {
+    return <ProtectedRoute />;
+  }
+
+  // If unauthenticated or explicitly on login/register, show Login/Register Page only (Protected routes completely blocked)
   if (!isAuthenticated || activeTab === 'login') {
     return (
       <div className="login-root">
         <ToastNotification toasts={toasts} onDismiss={removeToast} />
-        <Login onLoginSuccess={handleLoginSuccess} />
+        <Login
+          onLoginSuccess={handleLoginSuccess}
+          onRegisterSuccess={handleRegisterSuccess}
+          initialMode={window.location.pathname === '/register' ? 'register' : 'login'}
+        />
       </div>
     );
   }
 
   // Authenticated Protected View
   return (
-    <div className="app-layout">
-      {/* Toast Notification Container */}
-      <ToastNotification toasts={toasts} onDismiss={removeToast} />
+    <ProtectedRoute onRedirectToLogin={() => setActiveTab('login')}>
+      <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+        {/* Toast Notification Container */}
+        <ToastNotification toasts={toasts} onDismiss={removeToast} />
 
-      {/* Persistent Left Sidebar */}
-      <Sidebar
-        activeTab={activeTab}
-        onSelectTab={handleNavigate}
-        isOpen={isMobileSidebarOpen}
-        onCloseMobile={() => setIsMobileSidebarOpen(false)}
-        unreadAlertsCount={alerts.filter((a) => a.type === 'Critical' || a.type === 'Warning').length}
-      />
-
-      {/* Main Wrapper */}
-      <div className="main-wrapper">
-        <Navbar
-          pageTitle={title}
-          pageSubtitle={subtitle}
-          onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onNavigate={handleNavigate}
-          recentAlerts={alerts}
-          currentUser={user}
-          onSignOut={handleSignOut}
+        {/* Persistent Left Sidebar */}
+        <Sidebar
+          activeTab={activeTab}
+          onSelectTab={handleNavigate}
+          isOpen={isMobileSidebarOpen}
+          onCloseMobile={() => setIsMobileSidebarOpen(false)}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={handleToggleSidebar}
+          unreadAlertsCount={alerts.filter((a) => a.type === 'Critical' || a.type === 'Warning').length}
         />
-        <main>
-          {renderActiveView()}
-        </main>
+
+        {/* Main Wrapper */}
+        <div className={`main-wrapper ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+          <Navbar
+            pageTitle={title}
+            pageSubtitle={subtitle}
+            onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onNavigate={handleNavigate}
+            recentAlerts={alerts}
+            currentUser={user}
+            onSignOut={handleSignOut}
+          />
+          <main>
+            {renderActiveView()}
+          </main>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
 

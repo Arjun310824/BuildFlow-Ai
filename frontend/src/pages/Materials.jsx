@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '../components/common/Badge';
 import { ProgressBar } from '../components/common/ProgressBar';
@@ -9,25 +9,46 @@ import {
   IconAlertTriangle,
   IconX,
   IconSparkles,
+  IconEdit,
+  IconTrash,
+  IconRefresh,
 } from '../components/common/Icons';
+import {
+  getMaterialsApi,
+  createMaterialApi,
+  updateMaterialApi,
+  deleteMaterialApi,
+} from '../services/api';
 
 /**
  * Materials: Material Intelligence & Inventory Health Management.
- * Concept: Material Data → Inventory Health → Project Impact → Recommended Action.
+ * Concept: Real Material Telemetry → Inventory Health → Project Impact → CRUD operations.
  */
 export const Materials = ({
-  materials = [],
+  materials: initialMaterialsProp = [],
   projects = [],
   onAddMaterial,
   onReorder,
   onNavigate,
 }) => {
   const { t } = useTranslation();
+
+  // Internal reactive state populated from MongoDB backend
+  const [materials, setMaterials] = useState(initialMaterialsProp);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [projectFilter, setProjectFilter] = useState('All');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
+
+  // Modal states
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState(null);
+  const [deletingMaterial, setDeletingMaterial] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [modalError, setModalError] = useState(null);
 
   const firstProject = projects[0] || {};
 
@@ -39,11 +60,33 @@ export const Materials = ({
     required: '',
     available: '',
     unit: 'Bags',
-    supplier: 'Apex Ready-Mix & Materials',
   });
 
+  // Fetch materials directly from MongoDB backend
+  const fetchMaterials = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await getMaterialsApi();
+      if (res && res.success && Array.isArray(res.data)) {
+        setMaterials(res.data);
+      } else {
+        setMaterials([]);
+      }
+    } catch (err) {
+      console.error('Error fetching materials from MongoDB:', err);
+      setError(err.message || 'Failed to load materials from server.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMaterials();
+  }, [fetchMaterials]);
+
   // Sync default project if projects loaded asynchronously
-  React.useEffect(() => {
+  useEffect(() => {
     if (projects.length > 0 && !modalData.projectId) {
       setModalData((prev) => ({
         ...prev,
@@ -67,30 +110,31 @@ export const Materials = ({
   };
 
   const lowStockCount = materials.filter(
-    (m) => m.status?.toUpperCase() === 'LOW STOCK' || m.status === 'Low Stock'
+    (m) => m.status === 'Low Stock' || m.status?.toUpperCase() === 'LOW STOCK'
   ).length;
   const outOfStockCount = materials.filter(
-    (m) => m.status?.toUpperCase() === 'OUT OF STOCK' || m.status === 'Out of Stock'
+    (m) => m.status === 'Out of Stock' || m.status?.toUpperCase() === 'OUT OF STOCK'
   ).length;
 
+  // Filtered materials
   const filteredMaterials = materials.filter((m) => {
     const matName = m.name || m.material || '';
     const matId = (m._id || m.id || '').toString();
-    const matSupplier = m.supplier || m.category || '';
+    const matCat = m.category || '';
     const matProject = getMaterialProjectName(m);
     const matProjectId = (m.projectId?._id || m.projectId || '').toString();
 
     const matchesSearch =
       matName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       matId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      matSupplier.toLowerCase().includes(searchTerm.toLowerCase());
+      matCat.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
       statusFilter === 'All' ||
       m.status === statusFilter ||
-      (statusFilter === 'In Stock' && (m.status === 'Available' || m.status === 'In Stock')) ||
-      (statusFilter === 'LOW STOCK' && (m.status === 'Low Stock' || m.status === 'LOW STOCK')) ||
-      (statusFilter === 'OUT OF STOCK' && (m.status === 'Out of Stock' || m.status === 'OUT OF STOCK'));
+      (statusFilter === 'Available' && (m.status === 'Available' || m.status === 'In Stock')) ||
+      (statusFilter === 'Low Stock' && (m.status === 'Low Stock' || m.status === 'LOW STOCK')) ||
+      (statusFilter === 'Out of Stock' && (m.status === 'Out of Stock' || m.status === 'OUT OF STOCK'));
 
     const matchesProject =
       projectFilter === 'All' ||
@@ -100,45 +144,146 @@ export const Materials = ({
     return matchesSearch && matchesStatus && matchesProject;
   });
 
-  const handleCreateMaterial = (e) => {
+  // Action: Create Material
+  const handleCreateMaterial = async (e) => {
     e.preventDefault();
-    if (!modalData.material.trim()) return;
+    setModalError(null);
 
-    const reqQty = parseFloat(modalData.required) || 100;
-    const availQty = parseFloat(modalData.available) || 0;
-    const selectedPrj =
-      projects.find((p) => (p._id || p.id) === modalData.projectId) ||
-      projects[0] ||
-      {};
-    const targetProjectId = modalData.projectId || selectedPrj._id || selectedPrj.id || '';
+    if (!modalData.material.trim()) {
+      setModalError('Material name is required.');
+      return;
+    }
 
-    const newMat = {
-      name: modalData.material.trim(),
-      material: modalData.material.trim(),
-      projectId: targetProjectId,
-      project: selectedPrj.name || 'General Project',
-      category: modalData.category || 'General',
-      requiredQuantity: reqQty,
-      availableQuantity: availQty,
-      usedQuantity: 0,
-      unit: modalData.unit.trim() || 'units',
-      supplier: modalData.supplier.trim() || 'Apex Materials',
-      required: `${reqQty} ${modalData.unit.trim() || 'units'}`,
-      available: `${availQty} ${modalData.unit.trim() || 'units'}`,
-      used: `0 ${modalData.unit.trim() || 'units'}`,
-    };
+    if (!modalData.projectId) {
+      setModalError('Please select a valid project.');
+      return;
+    }
 
-    onAddMaterial(newMat);
-    setIsAddModalOpen(false);
-    setModalData({
-      material: '',
-      projectId: projects[0]?._id || projects[0]?.id || '',
-      category: 'Concrete & Masonry',
-      required: '',
-      available: '',
-      unit: 'Bags',
-      supplier: 'Apex Ready-Mix & Materials',
+    const reqQty = parseFloat(modalData.required);
+    const availQty = parseFloat(modalData.available);
+
+    if (isNaN(reqQty) || reqQty < 0) {
+      setModalError('Required quantity must be a non-negative number.');
+      return;
+    }
+
+    if (isNaN(availQty) || availQty < 0) {
+      setModalError('Available quantity must be a non-negative number.');
+      return;
+    }
+
+    if (!modalData.unit.trim()) {
+      setModalError('Unit of measurement is required.');
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const payload = {
+        projectId: modalData.projectId,
+        name: modalData.material.trim(),
+        category: modalData.category || 'General',
+        requiredQuantity: reqQty,
+        availableQuantity: availQty,
+        usedQuantity: 0,
+        unit: modalData.unit.trim(),
+      };
+
+      const res = await createMaterialApi(payload);
+      if (res && res.success && res.data) {
+        setIsAddModalOpen(false);
+        setModalData({
+          material: '',
+          projectId: projects[0]?._id || projects[0]?.id || '',
+          category: 'Concrete & Masonry',
+          required: '',
+          available: '',
+          unit: 'Bags',
+        });
+        await fetchMaterials();
+        if (onAddMaterial) {
+          onAddMaterial(res.data);
+        }
+      }
+    } catch (err) {
+      console.error('Error creating material:', err);
+      setModalError(err.message || 'Failed to create material in database.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Action: Open Edit Material Modal
+  const handleOpenEdit = (mat) => {
+    setModalError(null);
+    setEditingMaterial({
+      _id: mat._id || mat.id,
+      name: mat.name || mat.material || '',
+      category: mat.category || 'General',
+      requiredQuantity: typeof mat.requiredQuantity === 'number' ? mat.requiredQuantity : (parseFloat(mat.required) || 0),
+      availableQuantity: typeof mat.availableQuantity === 'number' ? mat.availableQuantity : (parseFloat(mat.available) || 0),
+      usedQuantity: typeof mat.usedQuantity === 'number' ? mat.usedQuantity : (parseFloat(mat.used) || 0),
+      unit: mat.unit || 'units',
     });
+  };
+
+  // Action: Save Edit Material
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingMaterial) return;
+    setModalError(null);
+
+    const reqQty = Number(editingMaterial.requiredQuantity);
+    const availQty = Number(editingMaterial.availableQuantity);
+    const usedQty = Number(editingMaterial.usedQuantity);
+
+    if (isNaN(reqQty) || reqQty < 0) {
+      setModalError('Required quantity must be a non-negative number.');
+      return;
+    }
+    if (isNaN(availQty) || availQty < 0) {
+      setModalError('Available quantity must be a non-negative number.');
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const updatePayload = {
+        name: editingMaterial.name.trim(),
+        category: editingMaterial.category,
+        requiredQuantity: reqQty,
+        availableQuantity: availQty,
+        usedQuantity: isNaN(usedQty) ? 0 : usedQty,
+        unit: editingMaterial.unit.trim(),
+      };
+
+      await updateMaterialApi(editingMaterial._id, updatePayload);
+      setEditingMaterial(null);
+      await fetchMaterials();
+    } catch (err) {
+      console.error('Error updating material:', err);
+      setModalError(err.message || 'Failed to update material.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Action: Confirm Delete Material
+  const handleConfirmDelete = async () => {
+    if (!deletingMaterial) return;
+    setModalError(null);
+
+    try {
+      setActionLoading(true);
+      await deleteMaterialApi(deletingMaterial._id || deletingMaterial.id);
+      setDeletingMaterial(null);
+      await fetchMaterials();
+    } catch (err) {
+      console.error('Error deleting material:', err);
+      setModalError(err.message || 'Failed to delete material.');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -156,12 +301,20 @@ export const Materials = ({
         </div>
         <div className="page-header-actions">
           <button
+            className="btn btn-secondary btn-icon-only"
+            onClick={fetchMaterials}
+            title="Refresh from MongoDB"
+            disabled={loading}
+          >
+            <IconRefresh size={16} />
+          </button>
+          <button
             className="btn btn-secondary"
             onClick={() => setViewMode((prev) => (prev === 'cards' ? 'table' : 'cards'))}
           >
             {viewMode === 'cards' ? 'Table View' : 'Inventory Health Cards'}
           </button>
-          <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
+          <button className="btn btn-primary" onClick={() => { setModalError(null); setIsAddModalOpen(true); }}>
             <IconPlus size={16} />
             <span>{t('materials.addMaterial', 'Log Material')}</span>
           </button>
@@ -187,7 +340,7 @@ export const Materials = ({
           <div className="stat-value" style={{ color: lowStockCount > 0 ? '#FBBF24' : '#FFFFFF' }}>
             {lowStockCount}
           </div>
-          <div className="stat-subtext">Below 25% safety reserve</div>
+          <div className="stat-subtext">Below 20% safety reserve</div>
         </div>
 
         <div className="stat-card">
@@ -207,7 +360,7 @@ export const Materials = ({
             <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>AI RATED</span>
           </div>
           <div className="stat-value" style={{ color: 'var(--accent-cyan)' }}>
-            {materials.length > 0 ? Math.max(20, Math.round(100 - (lowStockCount + outOfStockCount * 2) * 15)) : 85}%
+            {materials.length > 0 ? Math.max(10, Math.round(100 - (lowStockCount * 15 + outOfStockCount * 30))) : 100}%
           </div>
           <div className="stat-subtext">Portfolio buffer index</div>
         </div>
@@ -232,9 +385,9 @@ export const Materials = ({
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="All">{t('materials.allStatuses', 'All Statuses')}</option>
-            <option value="Available">Available / In Stock</option>
-            <option value="LOW STOCK">{t('status.lowStock', 'Low Stock')}</option>
-            <option value="OUT OF STOCK">{t('status.outOfStock', 'Out of Stock')}</option>
+            <option value="Available">Available</option>
+            <option value="Low Stock">Low Stock</option>
+            <option value="Out of Stock">Out of Stock</option>
           </select>
 
           <select
@@ -256,22 +409,43 @@ export const Materials = ({
         </div>
       </div>
 
-      {/* Mode 1: Inventory Health Cards View (Signature Feature) */}
-      {viewMode === 'cards' ? (
+      {/* Error Message */}
+      {error && (
+        <div style={{ marginBottom: '16px', padding: '12px 16px', background: '#FEF2F2', border: '1px solid #F87171', borderRadius: '8px', color: '#B91C1C', fontSize: '0.86rem' }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+          <div style={{ display: 'inline-block', width: '28px', height: '28px', border: '3px solid #E2E8F0', borderTopColor: 'var(--accent-cyan)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '10px' }} />
+          <p>Loading material inventory from MongoDB...</p>
+        </div>
+      )}
+
+      {/* Mode 1: Inventory Health Cards View */}
+      {!loading && viewMode === 'cards' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
           {filteredMaterials.length === 0 ? (
-            <div className="card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px' }}>
-              <p style={{ color: 'var(--text-muted)' }}>No material inventory records found.</p>
+            <div className="card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '48px 24px' }}>
+              <IconMaterials size={36} color="var(--text-muted)" style={{ margin: '0 auto 12px', display: 'block' }} />
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                No materials found for this project.
+              </h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem' }}>
+                Log new construction materials linked to live MongoDB project tracking.
+              </p>
             </div>
           ) : (
             filteredMaterials.map((mat) => {
-              const reqQty = typeof mat.requiredQuantity === 'number' ? mat.requiredQuantity : (parseFloat(mat.required) || 100);
-              const availQty = typeof mat.availableQuantity === 'number' ? mat.availableQuantity : (parseFloat(mat.available) || 0);
-              const usedQty = typeof mat.usedQuantity === 'number' ? mat.usedQuantity : (parseFloat(mat.used) || 0);
+              const reqQty = Number(mat.requiredQuantity) || 0;
+              const availQty = Number(mat.availableQuantity) || 0;
+              const usedQty = Number(mat.usedQuantity) || 0;
               const unitStr = mat.unit || 'units';
 
               const healthPct = reqQty > 0 ? Math.min(100, Math.round((availQty / reqQty) * 100)) : 0;
-              const isWarning = ['LOW STOCK', 'OUT OF STOCK', 'Low Stock', 'Out of Stock'].includes(mat.status) || healthPct < 30;
+              const isWarning = ['LOW STOCK', 'OUT OF STOCK', 'Low Stock', 'Out of Stock'].includes(mat.status) || healthPct < 25;
 
               return (
                 <div
@@ -355,7 +529,7 @@ export const Materials = ({
                     />
                   </div>
 
-                  {/* AI Impact Banner */}
+                  {/* AI Impact Assessment */}
                   {isWarning ? (
                     <div
                       style={{
@@ -392,7 +566,7 @@ export const Materials = ({
                     </div>
                   )}
 
-                  {/* Actions */}
+                  {/* Card Footer Actions */}
                   <div
                     style={{
                       display: 'flex',
@@ -403,14 +577,29 @@ export const Materials = ({
                       marginTop: 'auto',
                     }}
                   >
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Supplier: <strong>{mat.supplier || 'Apex Materials'}</strong>
-                    </span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleOpenEdit(mat)}
+                        title="Edit Material"
+                      >
+                        <IconEdit size={14} />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#EF4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                        onClick={() => setDeletingMaterial(mat)}
+                        title="Delete Material"
+                      >
+                        <IconTrash size={14} />
+                      </button>
+                    </div>
 
                     {isWarning && (
                       <button
                         className="btn btn-secondary btn-sm"
-                        style={{ color: '#EF4444', borderColor: 'rgba(239, 68, 68, 0.4)' }}
+                        style={{ color: '#F59E0B', borderColor: 'rgba(245, 158, 11, 0.4)' }}
                         onClick={() => onReorder && onReorder(mat)}
                       >
                         Reorder Stock &rarr;
@@ -422,8 +611,10 @@ export const Materials = ({
             })
           )}
         </div>
-      ) : (
-        /* Mode 2: Table View */
+      )}
+
+      {/* Mode 2: Table View */}
+      {!loading && viewMode === 'table' && (
         <div className="table-container">
           <table className="data-table">
             <thead>
@@ -435,53 +626,68 @@ export const Materials = ({
                 <th>Used</th>
                 <th>Inventory Health</th>
                 <th>Status</th>
-                <th>Action</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredMaterials.map((mat) => {
-                const reqQty = typeof mat.requiredQuantity === 'number' ? mat.requiredQuantity : (parseFloat(mat.required) || 100);
-                const availQty = typeof mat.availableQuantity === 'number' ? mat.availableQuantity : (parseFloat(mat.available) || 0);
-                const healthPct = reqQty > 0 ? Math.min(100, Math.round((availQty / reqQty) * 100)) : 0;
+              {filteredMaterials.length === 0 ? (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                    No materials found for this project.
+                  </td>
+                </tr>
+              ) : (
+                filteredMaterials.map((mat) => {
+                  const reqQty = Number(mat.requiredQuantity) || 0;
+                  const availQty = Number(mat.availableQuantity) || 0;
+                  const usedQty = Number(mat.usedQuantity) || 0;
+                  const healthPct = reqQty > 0 ? Math.min(100, Math.round((availQty / reqQty) * 100)) : 0;
 
-                return (
-                  <tr key={mat._id || mat.id}>
-                    <td>
-                      <div className="table-cell-title">{mat.name || mat.material}</div>
-                      <div className="table-cell-sub">{mat.category || 'General'}</div>
-                    </td>
-                    <td>{getMaterialProjectName(mat)}</td>
-                    <td>{reqQty.toLocaleString()} {mat.unit || ''}</td>
-                    <td style={{ fontWeight: 600 }}>{availQty.toLocaleString()} {mat.unit || ''}</td>
-                    <td>{(typeof mat.usedQuantity === 'number' ? mat.usedQuantity : 0).toLocaleString()} {mat.unit || ''}</td>
-                    <td style={{ width: '140px' }}>
-                      <ProgressBar progress={healthPct} height={6} />
-                    </td>
-                    <td>
-                      <StatusBadge status={mat.status} />
-                    </td>
-                    <td>
-                      {['LOW STOCK', 'OUT OF STOCK', 'Low Stock', 'Out of Stock'].includes(mat.status) ? (
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          style={{ color: '#EF4444', borderColor: '#EF4444' }}
-                          onClick={() => onReorder && onReorder(mat)}
-                        >
-                          Reorder
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>—</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr key={mat._id || mat.id}>
+                      <td>
+                        <div className="table-cell-title">{mat.name || mat.material}</div>
+                        <div className="table-cell-sub">{mat.category || 'General'}</div>
+                      </td>
+                      <td>{getMaterialProjectName(mat)}</td>
+                      <td>{reqQty.toLocaleString()} {mat.unit || ''}</td>
+                      <td style={{ fontWeight: 600 }}>{availQty.toLocaleString()} {mat.unit || ''}</td>
+                      <td>{usedQty.toLocaleString()} {mat.unit || ''}</td>
+                      <td style={{ width: '140px' }}>
+                        <ProgressBar progress={healthPct} height={6} />
+                      </td>
+                      <td>
+                        <StatusBadge status={mat.status} />
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                          <button
+                            className="btn btn-secondary btn-sm btn-icon-only"
+                            onClick={() => handleOpenEdit(mat)}
+                            title="Edit"
+                          >
+                            <IconEdit size={14} />
+                          </button>
+                          <button
+                            className="btn btn-secondary btn-sm btn-icon-only"
+                            style={{ color: '#EF4444' }}
+                            onClick={() => setDeletingMaterial(mat)}
+                            title="Delete"
+                          >
+                            <IconTrash size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Add Material Modal */}
+      {/* Log Material Modal */}
       {isAddModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsAddModalOpen(false)}>
           <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
@@ -498,6 +704,12 @@ export const Materials = ({
                 <IconX size={20} />
               </button>
             </div>
+
+            {modalError && (
+              <div style={{ margin: '0 24px 16px', padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#B91C1C', fontSize: '0.84rem' }}>
+                ⚠️ {modalError}
+              </div>
+            )}
 
             <form onSubmit={handleCreateMaterial} className="modal-form">
               <div className="form-grid">
@@ -533,7 +745,7 @@ export const Materials = ({
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Category</label>
+                  <label className="form-label">{t('materials.category', 'Category')}</label>
                   <select
                     className="form-select"
                     value={modalData.category}
@@ -541,57 +753,56 @@ export const Materials = ({
                   >
                     <option value="Concrete & Masonry">Concrete & Masonry</option>
                     <option value="Metals & Rebar">Metals & Rebar</option>
-                    <option value="Finishes & Glazing">Finishes & Glazing</option>
-                    <option value="MEP & Piping">MEP & Piping</option>
-                    <option value="Electrical">Electrical</option>
-                    <option value="General">General</option>
+                    <option value="Earthwork & Aggregates">Earthwork & Aggregates</option>
+                    <option value="Electrical & MEP">Electrical & MEP</option>
+                    <option value="Finishes & Drywall">Finishes & Drywall</option>
+                    <option value="General Supplies">General Supplies</option>
                   </select>
                 </div>
 
                 <div className="form-group">
                   <label className="form-label">
-                    Required Quantity <span className="req-star">*</span>
+                    {t('materials.requiredQty', 'Required Quantity')} <span className="req-star">*</span>
                   </label>
                   <input
                     type="number"
+                    min="0"
+                    step="any"
                     className="form-input"
                     required
-                    placeholder="e.g. 1800"
+                    placeholder="e.g. 5000"
                     value={modalData.required}
                     onChange={(e) => setModalData({ ...modalData, required: e.target.value })}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Available In Stock</label>
+                  <label className="form-label">
+                    {t('materials.availableQty', 'Available Quantity')} <span className="req-star">*</span>
+                  </label>
                   <input
                     type="number"
+                    min="0"
+                    step="any"
                     className="form-input"
-                    placeholder="e.g. 420"
+                    required
+                    placeholder="e.g. 3200"
                     value={modalData.available}
                     onChange={(e) => setModalData({ ...modalData, available: e.target.value })}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Unit of Measure</label>
+                  <label className="form-label">
+                    {t('materials.unit', 'Unit of Measurement')} <span className="req-star">*</span>
+                  </label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="e.g. Bags, Tons, Sq.m, Spools"
+                    required
+                    placeholder="e.g. Bags, Tons, m³, Bundles"
                     value={modalData.unit}
                     onChange={(e) => setModalData({ ...modalData, unit: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Supplier / Vendor</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. Apex Ready-Mix & Materials"
-                    value={modalData.supplier}
-                    onChange={(e) => setModalData({ ...modalData, supplier: e.target.value })}
                   />
                 </div>
               </div>
@@ -601,17 +812,192 @@ export const Materials = ({
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => setIsAddModalOpen(false)}
+                  disabled={actionLoading}
                 >
-                  Cancel
+                  {t('common.cancel', 'Cancel')}
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  Log Material
+                <button type="submit" className="btn btn-primary" disabled={actionLoading}>
+                  {actionLoading ? 'Logging Material...' : t('materials.addMaterial', 'Log Material')}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Edit Material Modal */}
+      {editingMaterial && (
+        <div className="modal-backdrop" onClick={() => setEditingMaterial(null)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h2 className="modal-title">Edit Material</h2>
+                <p className="modal-subtitle">Update inventory quantities and telemetry in MongoDB</p>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => setEditingMaterial(null)}
+                aria-label="Close modal"
+              >
+                <IconX size={20} />
+              </button>
+            </div>
+
+            {modalError && (
+              <div style={{ margin: '0 24px 16px', padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#B91C1C', fontSize: '0.84rem' }}>
+                ⚠️ {modalError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEdit} className="modal-form">
+              <div className="form-grid">
+                <div className="form-group full-width">
+                  <label className="form-label">Material Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    required
+                    value={editingMaterial.name}
+                    onChange={(e) => setEditingMaterial({ ...editingMaterial, name: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Category</label>
+                  <select
+                    className="form-select"
+                    value={editingMaterial.category}
+                    onChange={(e) => setEditingMaterial({ ...editingMaterial, category: e.target.value })}
+                  >
+                    <option value="Concrete & Masonry">Concrete & Masonry</option>
+                    <option value="Metals & Rebar">Metals & Rebar</option>
+                    <option value="Earthwork & Aggregates">Earthwork & Aggregates</option>
+                    <option value="Electrical & MEP">Electrical & MEP</option>
+                    <option value="Finishes & Drywall">Finishes & Drywall</option>
+                    <option value="General Supplies">General Supplies</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Unit</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    required
+                    value={editingMaterial.unit}
+                    onChange={(e) => setEditingMaterial({ ...editingMaterial, unit: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Required Quantity</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    className="form-input"
+                    required
+                    value={editingMaterial.requiredQuantity}
+                    onChange={(e) => setEditingMaterial({ ...editingMaterial, requiredQuantity: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Available Quantity</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    className="form-input"
+                    required
+                    value={editingMaterial.availableQuantity}
+                    onChange={(e) => setEditingMaterial({ ...editingMaterial, availableQuantity: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Used Quantity</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    className="form-input"
+                    value={editingMaterial.usedQuantity}
+                    onChange={(e) => setEditingMaterial({ ...editingMaterial, usedQuantity: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setEditingMaterial(null)}
+                  disabled={actionLoading}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={actionLoading}>
+                  {actionLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingMaterial && (
+        <div className="modal-backdrop" onClick={() => setDeletingMaterial(null)}>
+          <div className="modal-dialog" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h2 className="modal-title" style={{ color: '#EF4444' }}>Delete Material Record</h2>
+                <p className="modal-subtitle">Confirm removal of inventory tracking item</p>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => setDeletingMaterial(null)}
+                aria-label="Close modal"
+              >
+                <IconX size={20} />
+              </button>
+            </div>
+
+            {modalError && (
+              <div style={{ margin: '0 24px 16px', padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#B91C1C', fontSize: '0.84rem' }}>
+                ⚠️ {modalError}
+              </div>
+            )}
+
+            <div style={{ padding: '0 24px 20px', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+              Are you sure you want to delete <strong>{deletingMaterial.name || deletingMaterial.material}</strong> from MongoDB? This action cannot be undone.
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setDeletingMaterial(null)}
+                disabled={actionLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ background: '#DC2626', borderColor: '#DC2626' }}
+                onClick={handleConfirmDelete}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+export default Materials;

@@ -3,16 +3,37 @@ import { useTranslation } from 'react-i18next';
 import { BuildFlowLogo } from '../components/common/BuildFlowLogo';
 import { IconEye } from '../components/common/Icons';
 
-export const Login = ({ onLoginSuccess }) => {
+export const Login = ({ onLoginSuccess, onRegisterSuccess, initialMode = 'login' }) => {
   const { t, i18n } = useTranslation();
 
+  const [mode, setMode] = useState(initialMode); // 'login' | 'register'
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('alex.morgan@buildops.ai');
-  const [password, setPassword] = useState('••••••••');
+  const [password, setPassword] = useState('Password123!');
+  const [role, setRole] = useState('Project Manager');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
+
+  const OPERATIONAL_ROLES = [
+    'Project Manager',
+    'Site Engineer',
+    'Construction Manager',
+    'Project Coordinator',
+    'Site Supervisor',
+    'Civil Engineer',
+    'Structural Engineer',
+    'Architect',
+    'Quantity Surveyor',
+    'Planning Engineer',
+    'Safety Officer',
+    'Procurement Manager',
+    'Contracts Manager',
+    'Operations Manager',
+    'Other',
+  ];
 
   const currentLang = i18n.language || 'en';
   const languages = [
@@ -27,14 +48,24 @@ export const Login = ({ onLoginSuccess }) => {
 
   const validate = () => {
     const errs = {};
+    if (mode === 'register') {
+      if (!name.trim()) {
+        errs.name = 'Full name is required.';
+      }
+    }
+
     if (!email.trim()) {
       errs.email = 'Email address is required.';
     } else if (!/\S+@\S+\.\S+/.test(email.trim())) {
       errs.email = 'Please enter a valid email address.';
     }
+
     if (!password) {
       errs.password = 'Password is required.';
+    } else if (password.length < 6) {
+      errs.password = 'Password must be at least 6 characters.';
     }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -44,17 +75,29 @@ export const Login = ({ onLoginSuccess }) => {
     if (!validate()) return;
 
     setIsLoading(true);
+    setErrors({});
     try {
-      if (onLoginSuccess) {
-        await onLoginSuccess({
-          email: email.trim(),
-          password,
-          rememberMe,
-        });
+      if (mode === 'register') {
+        if (onRegisterSuccess) {
+          await onRegisterSuccess({
+            name: name.trim(),
+            email: email.trim(),
+            password,
+            role,
+          });
+        }
+      } else {
+        if (onLoginSuccess) {
+          await onLoginSuccess({
+            email: email.trim(),
+            password,
+            rememberMe,
+          });
+        }
       }
     } catch (err) {
-      console.error('Login error:', err);
-      setErrors({ form: err.message || 'Login failed. Please try again.' });
+      console.error('Authentication error:', err);
+      setErrors({ form: err.message || 'Authentication failed. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -62,13 +105,12 @@ export const Login = ({ onLoginSuccess }) => {
 
   const handleDemoLogin = async () => {
     setIsLoading(true);
+    setErrors({});
     try {
       if (onLoginSuccess) {
         await onLoginSuccess({
           email: 'alex.morgan@buildops.ai',
-          name: 'Alex Morgan',
-          role: 'Project Director',
-          avatar: 'AM',
+          password: 'Password123!',
         });
       }
     } catch (err) {
@@ -869,6 +911,62 @@ export const Login = ({ onLoginSuccess }) => {
               </p>
             </div>
 
+            {/* Mode Switcher Tabs */}
+            <div
+              style={{
+                display: 'flex',
+                background: '#F1F5F9',
+                borderRadius: '10px',
+                padding: '4px',
+                marginBottom: '20px',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setErrors({});
+                }}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                  background: mode === 'login' ? '#FFFFFF' : 'transparent',
+                  color: mode === 'login' ? '#0B4F9C' : '#64748B',
+                  boxShadow: mode === 'login' ? '0 2px 6px rgba(11, 79, 156, 0.1)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('register');
+                  setErrors({});
+                }}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                  background: mode === 'register' ? '#FFFFFF' : 'transparent',
+                  color: mode === 'register' ? '#FF6A00' : '#64748B',
+                  boxShadow: mode === 'register' ? '0 2px 6px rgba(255, 106, 0, 0.15)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                Create Account
+              </button>
+            </div>
+
             {/* Error Banner */}
             {errors.form && (
               <div
@@ -893,6 +991,74 @@ export const Login = ({ onLoginSuccess }) => {
 
             {/* Form */}
             <form onSubmit={handleSubmit} noValidate>
+              {/* Full Name (Only in Register Mode) */}
+              {mode === 'register' && (
+                <div className="login-field-group">
+                  <div className="login-field-label-row">
+                    <label htmlFor="registerName" className="login-field-label">
+                      Full Name
+                    </label>
+                  </div>
+                  <div className="login-input-wrapper">
+                    <span className="login-input-icon">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </span>
+                    <input
+                      id="registerName"
+                      type="text"
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
+                      }}
+                      placeholder="e.g. Alex Morgan"
+                      className={`login-input-box ${errors.name ? 'error' : ''}`}
+                      disabled={isLoading}
+                      autoComplete="name"
+                    />
+                  </div>
+                  {errors.name && (
+                    <span className="login-error-text">{errors.name}</span>
+                  )}
+                </div>
+              )}
+
+              {/* Operational Role (Only in Register Mode) */}
+              {mode === 'register' && (
+                <div className="login-field-group">
+                  <div className="login-field-label-row">
+                    <label htmlFor="registerRole" className="login-field-label">
+                      Operational Role
+                    </label>
+                  </div>
+                  <div className="login-input-wrapper">
+                    <span className="login-input-icon">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                      </svg>
+                    </span>
+                    <select
+                      id="registerRole"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      className="login-input-box"
+                      style={{ cursor: 'pointer', appearance: 'auto' }}
+                      disabled={isLoading}
+                    >
+                      {OPERATIONAL_ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
               {/* Work Email */}
               <div className="login-field-group">
                 <div className="login-field-label-row">
@@ -930,15 +1096,17 @@ export const Login = ({ onLoginSuccess }) => {
               <div className="login-field-group">
                 <div className="login-field-label-row">
                   <label htmlFor="loginPassword" className="login-field-label">
-                    Password
+                    Password {mode === 'register' && <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 400 }}>(min. 6 chars)</span>}
                   </label>
-                  <button
-                    type="button"
-                    className="login-forgot-link"
-                    onClick={() => setShowForgotModal(true)}
-                  >
-                    Forgot?
-                  </button>
+                  {mode === 'login' && (
+                    <button
+                      type="button"
+                      className="login-forgot-link"
+                      onClick={() => setShowForgotModal(true)}
+                    >
+                      Forgot?
+                    </button>
+                  )}
                 </div>
                 <div className="login-input-wrapper">
                   <span className="login-input-icon">
@@ -959,7 +1127,7 @@ export const Login = ({ onLoginSuccess }) => {
                     className={`login-input-box ${errors.password ? 'error' : ''}`}
                     style={{ paddingRight: '42px' }}
                     disabled={isLoading}
-                    autoComplete="current-password"
+                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                   />
                   <button
                     type="button"
@@ -975,28 +1143,88 @@ export const Login = ({ onLoginSuccess }) => {
                 )}
               </div>
 
-              {/* Remember Me */}
-              <div className="login-remember-row">
-                <label className="login-checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="login-checkbox-input"
-                  />
-                  <span>Remember me for 30 days</span>
-                </label>
-              </div>
+              {/* Remember Me (Login Mode Only) */}
+              {mode === 'login' && (
+                <div className="login-remember-row">
+                  <label className="login-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="login-checkbox-input"
+                    />
+                    <span>Remember me for 30 days</span>
+                  </label>
+                </div>
+              )}
 
               {/* Submit Primary Button */}
               <button
                 type="submit"
                 className="login-btn-primary"
                 disabled={isLoading}
+                style={{ marginTop: mode === 'register' ? '8px' : '0' }}
               >
-                <span>{isLoading ? 'Signing in...' : 'Sign In to Workspace'}</span>
+                <span>
+                  {isLoading
+                    ? mode === 'register'
+                      ? 'Creating account...'
+                      : 'Signing in...'
+                    : mode === 'register'
+                    ? 'Create BuildOps Account'
+                    : 'Sign In to Workspace'}
+                </span>
                 <span>&rarr;</span>
               </button>
+
+              {/* Switch Mode Prompt */}
+              <div style={{ textAlign: 'center', marginTop: '14px', fontSize: '0.82rem', color: '#64748B' }}>
+                {mode === 'login' ? (
+                  <span>
+                    New to BuildOps AI?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('register');
+                        setErrors({});
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: '#FF6A00',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      Create an account
+                    </button>
+                  </span>
+                ) : (
+                  <span>
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('login');
+                        setErrors({});
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: '#1677D2',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      Sign In
+                    </button>
+                  </span>
+                )}
+              </div>
             </form>
 
             {/* Divider */}

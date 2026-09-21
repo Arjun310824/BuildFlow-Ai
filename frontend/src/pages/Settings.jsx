@@ -1,18 +1,64 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
+
+const OPERATIONAL_ROLES = [
+  'Project Manager',
+  'Site Engineer',
+  'Construction Manager',
+  'Project Coordinator',
+  'Site Supervisor',
+  'Civil Engineer',
+  'Structural Engineer',
+  'Architect',
+  'Quantity Surveyor',
+  'Planning Engineer',
+  'Safety Officer',
+  'Procurement Manager',
+  'Contracts Manager',
+  'Operations Manager',
+  'Other',
+];
+
+const PROFILE_STORAGE_KEY = 'buildops_user_profile';
 
 export const Settings = ({ onSaveFeedback }) => {
   const { t, i18n } = useTranslation();
+  const { user, updateUser } = useAuth();
   const [activeSection, setActiveSection] = useState('profile');
 
-  // Profile State
-  const [profile, setProfile] = useState({
-    name: 'Alex Morgan',
-    role: 'Project Manager',
-    email: 'alex.morgan@buildops.ai',
-    phone: '+1 (555) 019-2834',
-    department: 'Commercial & High-Rise Operations',
+  // Profile State initialized from localStorage / AuthContext
+  const [profile, setProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem(PROFILE_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            name: parsed.name || user?.name || 'Alex Morgan',
+            role: parsed.role || user?.role || 'Project Manager',
+            email: parsed.email || user?.email || 'alex.morgan@buildops.ai',
+            phone: parsed.phone || '+91 98250 12345',
+            department: parsed.department || 'Commercial & High-Rise Operations',
+            customRole: parsed.customRole || '',
+          };
+        }
+      }
+    } catch (e) {}
+    return {
+      name: user?.name || 'Alex Morgan',
+      role: user?.role || 'Project Manager',
+      email: user?.email || 'alex.morgan@buildops.ai',
+      phone: '+91 98250 12345',
+      department: 'Commercial & High-Rise Operations',
+      customRole: '',
+    };
   });
+
+  const isInitialPredefined = OPERATIONAL_ROLES.filter((r) => r !== 'Other').includes(profile.role);
+  const [selectedRole, setSelectedRole] = useState(isInitialPredefined ? profile.role : 'Other');
+  const [customRole, setCustomRole] = useState(isInitialPredefined ? '' : (profile.customRole || profile.role || ''));
+  const [roleError, setRoleError] = useState('');
 
   // Company State
   const [company, setCompany] = useState({
@@ -41,6 +87,107 @@ export const Settings = ({ onSaveFeedback }) => {
     theme: 'Light Clean SaaS',
   });
 
+  const handlePhoneChange = (e) => {
+    const raw = e.target.value;
+    // Strip any leading +91 or non-digits, extract up to 10 digits
+    const digits = raw.replace(/^\+?91\s*/, '').replace(/\D/g, '').slice(0, 10);
+    let formatted = '+91';
+    if (digits.length > 0) {
+      if (digits.length <= 5) {
+        formatted += ' ' + digits;
+      } else {
+        formatted += ` ${digits.slice(0, 5)} ${digits.slice(5)}`;
+      }
+    } else {
+      formatted += ' ';
+    }
+    setProfile((prev) => ({ ...prev, phone: formatted }));
+  };
+
+  const handlePhoneKeyDown = (e) => {
+    // If backspacing while at or before position 4 ("+91 "), prevent deleting "+91 "
+    if (e.key === 'Backspace' && e.target.selectionStart <= 4 && e.target.selectionEnd <= 4) {
+      e.preventDefault();
+    }
+  };
+
+  const handleRoleChange = (e) => {
+    const newRole = e.target.value;
+    setSelectedRole(newRole);
+    setRoleError('');
+    if (newRole !== 'Other') {
+      setProfile((prev) => ({ ...prev, role: newRole }));
+    } else {
+      setProfile((prev) => ({ ...prev, role: customRole.trim() || 'Other' }));
+    }
+  };
+
+  const handleCustomRoleChange = (e) => {
+    const val = e.target.value;
+    setCustomRole(val);
+    if (roleError && val.trim()) {
+      setRoleError('');
+    }
+    setProfile((prev) => ({ ...prev, role: val.trim() || 'Other' }));
+  };
+
+  const handleProfileSave = (e) => {
+    e.preventDefault();
+
+    // 1. Role validation
+    let finalRole = selectedRole;
+    if (selectedRole === 'Other') {
+      if (!customRole || !customRole.trim()) {
+        setRoleError('Please specify your operational role.');
+        return;
+      }
+      finalRole = customRole.trim();
+    } else if (!selectedRole || !selectedRole.trim()) {
+      setRoleError('Please select your operational role.');
+      return;
+    }
+
+    setRoleError('');
+
+    // 2. Phone validation (+91 format)
+    const digits = profile.phone.replace(/^\+91\s*/, '').replace(/\D/g, '');
+    if (digits.length < 10) {
+      if (onSaveFeedback) {
+        onSaveFeedback('Please enter a valid 10-digit phone number starting with compulsory +91');
+      }
+      return;
+    }
+
+    // 3. Update profile state
+    const updatedProfile = {
+      ...profile,
+      role: finalRole,
+      customRole: selectedRole === 'Other' ? finalRole : '',
+    };
+    setProfile(updatedProfile);
+
+    // 4. Persist to localStorage
+    try {
+      localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updatedProfile));
+    } catch (err) {
+      console.warn('Failed to save profile to localStorage:', err);
+    }
+
+    // 5. Update AuthContext & auth localStorage
+    if (updateUser) {
+      updateUser({
+        name: updatedProfile.name,
+        email: updatedProfile.email,
+        role: finalRole,
+      });
+    }
+
+    // 6. User feedback toast
+    if (onSaveFeedback) {
+      onSaveFeedback(t('settings.saveProfile') + ' - ' + t('common.success'));
+    }
+  };
+
   const handleSave = (e) => {
     e.preventDefault();
     if (onSaveFeedback) {
@@ -68,6 +215,15 @@ export const Settings = ({ onSaveFeedback }) => {
     { id: 'security', label: t('settings.tabSecurity') },
     { id: 'preferences', label: t('settings.tabPreferences') },
   ];
+
+  const displayedRole =
+    selectedRole === 'Other'
+      ? (customRole.trim() || 'Other')
+      : (selectedRole || profile.role);
+
+  const userAvatar = profile.name
+    ? profile.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'AM'
+    : 'AM';
 
   return (
     <div className="page-container">
@@ -152,20 +308,20 @@ export const Settings = ({ onSaveFeedback }) => {
       <div className="form-card" style={{ maxWidth: '820px' }}>
         {/* Profile Section */}
         {activeSection === 'profile' && (
-          <form onSubmit={handleSave}>
+          <form onSubmit={handleProfileSave}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
               <div
                 className="user-avatar-circle"
                 style={{ width: '64px', height: '64px', fontSize: '1.4rem' }}
               >
-                AM
+                {userAvatar}
               </div>
               <div>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                   {profile.name}
                 </h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem' }}>
-                  {profile.role} • {profile.department}
+                  {displayedRole} • {profile.department}
                 </p>
               </div>
             </div>
@@ -182,13 +338,70 @@ export const Settings = ({ onSaveFeedback }) => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">{t('settings.profileRole')}</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={profile.role}
-                  onChange={(e) => setProfile({ ...profile, role: e.target.value })}
-                />
+                <label htmlFor="operationalRoleSelect" className="form-label">{t('settings.profileRole')}</label>
+                <div style={{ position: 'relative' }}>
+                  <select
+                    id="operationalRoleSelect"
+                    className="form-control"
+                    value={selectedRole}
+                    onChange={handleRoleChange}
+                    style={{
+                      width: '100%',
+                      height: '38px',
+                      lineHeight: '20px',
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none',
+                      paddingRight: '36px',
+                      cursor: 'pointer',
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 12px center',
+                      backgroundSize: '16px 16px',
+                    }}
+                  >
+                    {OPERATIONAL_ROLES.map((roleOpt) => (
+                      <option key={roleOpt} value={roleOpt}>
+                        {roleOpt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedRole === 'Other' && (
+                  <div style={{ marginTop: '10px' }}>
+                    <label
+                      htmlFor="specifyRoleInput"
+                      className="form-label"
+                      style={{ fontSize: '0.80rem', color: 'var(--text-main)', marginBottom: '4px', display: 'block' }}
+                    >
+                      Specify Role <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      id="specifyRoleInput"
+                      type="text"
+                      className={`form-control ${roleError ? 'input-error' : ''}`}
+                      placeholder="Enter your operational role"
+                      value={customRole}
+                      onChange={handleCustomRoleChange}
+                      style={{
+                        width: '100%',
+                        height: '38px',
+                      }}
+                      autoFocus
+                    />
+                    {roleError && (
+                      <div className="error-message">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        <span>{roleError}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
@@ -202,13 +415,26 @@ export const Settings = ({ onSaveFeedback }) => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">{t('settings.profilePhone')}</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={profile.phone}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                />
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>{t('settings.profilePhone')}</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary, #1677D2)' }}>
+                    🇮🇳 Compulsory +91
+                  </span>
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="tel"
+                    className="form-control"
+                    value={profile.phone}
+                    onChange={handlePhoneChange}
+                    onKeyDown={handlePhoneKeyDown}
+                    placeholder="+91 98250 12345"
+                    style={{ fontWeight: 500, letterSpacing: '0.5px' }}
+                  />
+                </div>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  Standard Indian mobile format starting with mandatory +91 country code.
+                </span>
               </div>
             </div>
 

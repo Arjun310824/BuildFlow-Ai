@@ -323,12 +323,43 @@ export const Dashboard = ({
   };
 
   const userName = user?.name ? user.name.split(' ')[0] : 'Alex';
-  const currentDateStr = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+
+  // Helper functions for dynamic local browser time & date
+  const getGreeting = (date = new Date()) => {
+    const hours = date.getHours();
+    if (hours >= 5 && hours < 12) return 'Good morning';
+    if (hours >= 12 && hours < 17) return 'Good afternoon';
+    if (hours >= 17 && hours < 21) return 'Good evening';
+    return 'Good night';
+  };
+
+  const getGreetingIcon = (date = new Date()) => {
+    const hours = date.getHours();
+    if (hours >= 5 && hours < 17) return '☀️';
+    if (hours >= 17 && hours < 21) return '🌆';
+    return '🌙';
+  };
+
+  const getLocalDateString = (d = new Date()) => {
+    const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+    const day = d.getDate();
+    const month = d.toLocaleDateString('en-US', { month: 'short' });
+    const year = d.getFullYear();
+    return `${weekday}, ${day} ${month} ${year}`;
+  };
+
+  // Dynamic time-based greeting and local date state
+  const [greeting, setGreeting] = useState(() => getGreeting());
+  const [greetingIcon, setGreetingIcon] = useState(() => getGreetingIcon());
+  const [currentDateStr, setCurrentDateStr] = useState(() => getLocalDateString());
+
+  // Recalculate on component mount using local browser time
+  useEffect(() => {
+    const now = new Date();
+    setGreeting(getGreeting(now));
+    setGreetingIcon(getGreetingIcon(now));
+    setCurrentDateStr(getLocalDateString(now));
+  }, []);
 
   return (
     <div className="clean-dashboard-root">
@@ -919,11 +950,11 @@ export const Dashboard = ({
           ======================================================== */}
       <section className="clean-welcome-header">
         <div className="welcome-left">
-          <span className="welcome-sun-icon" role="img" aria-label="Sun">
-            ☀️
+          <span className="welcome-sun-icon" role="img" aria-label={greeting}>
+            {greetingIcon}
           </span>
           <div>
-            <h1 className="welcome-title">Good morning, {userName}</h1>
+            <h1 className="welcome-title">{greeting}, {userName}</h1>
             <div className="welcome-subtitle">Here's an overview of your construction projects.</div>
           </div>
         </div>
